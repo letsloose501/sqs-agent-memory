@@ -181,6 +181,12 @@ _ROWS = {
     "ST015": ("error", "No SKILL.md",
               "The folder is in the skills tree and holds no skill.",
               "Add SKILL.md, or move the folder out.", False),
+    "ST017": ("warning", "Path into a tool's folder not on this machine",
+              "A path under `~/.claude`, `~/.config/<tool>`, a dot-folder or a platform config root "
+              "exists only where that tool is installed. On a CI runner or a fresh machine it is "
+              "missing, and a missing install cannot be told from a broken path.",
+              "Check it on a machine with the tool installed. If the file only describes install "
+              "locations, waive it for the file with `sqs-allow-file: ST017`.", False),
     "ST016": ("warning", "External link unreachable",
               "A dead URL in a reference sends the agent to fetch nothing.",
               "Update or remove the link. 403 is reported separately: it usually means the site "
@@ -635,7 +641,7 @@ GRADES = {
     "ST006": ("high", "low"),    "ST007": ("high", "low"),
     "ST008": ("medium", "medium"),
     "ST009": ("medium", "medium"), "ST010": ("medium", "medium"),
-    "ST011": ("high", "low"),
+    "ST011": ("high", "low"),    "ST017": ("high", "medium"),  # medium: a deleted tool folder reads as a missing install
     "ST012": ("medium", "high"),  # prose that looks like code is a judgement call
     "ST013": ("high", "low"),    "ST014": ("high", "low"),    "ST015": ("high", "low"),
     "ST016": ("unrated", "unrated"),  # documented gap: no engine emits it yet

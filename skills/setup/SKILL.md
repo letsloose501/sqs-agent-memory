@@ -10,7 +10,6 @@ description: >-
   configured.
 ---
 
-<!-- sqs-allow-file: ST011 - this file describes paths in the user's home that exist only after installation (config files, profiles); they are absent on a fresh machine or in CI. -->
 
 # Set up agent-memory
 

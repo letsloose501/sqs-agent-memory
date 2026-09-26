@@ -39,7 +39,9 @@ What it catches:
      renamed. For skills that read a knowledge vault before working this is the main
      source of silent degradation: the theory is gone and the work goes on anyway.
      Cyrillic is compared normalized: "ё" is sometimes stored as "е" + U+0308 (NFD),
-     and then a live file reads as a missing one.
+     and then a live file reads as a missing one. A missing path through a tool's own
+     folder (a dot-folder or a platform config root) is ST017, a warning: a tool not
+     installed on this machine looks exactly like a broken path.
  10. Unknown frontmatter key - a typo such as `descriptoin:` kills the skill in
      silence: no field means no description, which means the agent never calls it.
  11. Duplicate `name:` across skills - one shadows the other, and which one wins is
@@ -220,6 +222,26 @@ def path_exists(p):
                    for n in os.listdir(parent))
     except OSError:
         return False
+
+
+# Where tools keep their own state under the home folder: a dot-folder (`~/.claude`,
+# `~/.config/<tool>`, `~/.mempalace`) or a platform config root. A path in there that this
+# machine lacks is most often a tool not installed HERE (a CI runner, a fresh laptop), not a
+# note that was renamed, and the two cannot be told apart from the text. Watched four times:
+# `~/.claude/projects/`, `~/.claude/settings.json`, `~/.mempalace/config.json` and
+# `~/.config/browser-harness/` each passed on the author's machine and failed ST011 on a clean
+# runner, and each time the text was reworded to dodge the check.
+CONFIG_ROOTS = (("appdata",), ("library", "application support"), ("library", "preferences"))
+
+
+def environment_path(p):
+    """Whether a home path runs through a tool's own folder rather than the user's files."""
+    p = p.replace("$HOME", "~").replace("${HOME}", "~").replace("\\", "/")
+    parts = [x for x in p.split("/")[1:] if x]
+    if any(x.startswith(".") for x in parts[:-1]) or (parts and parts[0].startswith(".")):
+        return True
+    low = [x.casefold() for x in parts]
+    return any(tuple(low[:len(root)]) == root for root in CONFIG_ROOTS)
 
 
 def vault_paths(text):
@@ -559,7 +581,12 @@ def check(skill):
             if p in reported or path_exists(p):
                 continue
             reported.add(p)
-            errors.append(F("ST011", f"no such path: {p} (in {src})"))
+            if environment_path(p):
+                if not waived(body, "ST017"):
+                    warnings.append(F("ST017", f"not on this machine: {p} (in {src}) - a tool's own "
+                                               "folder; a missing install looks the same as a broken path"))
+            else:
+                errors.append(F("ST011", f"no such path: {p} (in {src})"))
 
     # 9. code as prose instead of a file. Substantive lines are counted: blank lines and
     #    comment lines do not make a program, and the threshold drifts on them.

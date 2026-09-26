@@ -3,6 +3,12 @@
 The version lives in `.claude-plugin/plugin.json`; a tag `vX.Y.Z` on a commit where it matches
 publishes a release with the section below as its notes.
 
+## Unreleased
+
+- Bundled SQS 2.2.0: a missing path into a tool's own folder (`~/.claude`, `~/.config/<tool>`,
+  `~/.mempalace`) is ST017, a warning, instead of ST011; the three `sqs-allow-file: ST011` waivers
+  that worked around it are gone, and CI runs the v2.2.0 action.
+
 ## 0.0.1 - 2026-09-26
 
 First public version.
