@@ -18,6 +18,9 @@ publishes a release with the section below as its notes.
 - Removed `grill-me`: it only called `grilling`, which runs on "grill me" by itself. The router
   now names `/agent-memory:grilling`.
 - README: positioning covers the toolkit, skills grouped by job, measured search numbers, limits.
+- Office files: `setup` stage 4b installs Anthropic's `document-skills` (docx, pptx, xlsx, pdf) with
+  the user's consent, `router` sends Office work there. Not bundled: their license forbids
+  redistribution.
 
 - Bundled SQS 2.2.0: a missing path into a tool's own folder (`~/.claude`, `~/.config/<tool>`,
   `~/.mempalace`) is ST017, a warning, instead of ST011; the three `sqs-allow-file: ST011` waivers

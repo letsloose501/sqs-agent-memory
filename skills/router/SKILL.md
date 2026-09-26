@@ -27,6 +27,12 @@ All skills below live in the `agent-memory` plugin: call them as `/agent-memory:
 link: `video`, which extracts the transcript and calls `notes` itself. A PDF, a book, a scan: `pdf`,
 which also calls `notes` itself. Never call `notes` directly on a link or a file.
 
+**A document to learn from, or a file to work on.** A PDF whose content goes into the vault: `pdf`.
+A Word, PowerPoint or Excel file to create, read, edit or convert, or a PDF to merge, split, fill or
+sign: Anthropic's `document-skills` (`docx`, `pptx`, `xlsx`, `pdf`; in the Claude apps they show as
+`anthropic-skills:*`). Not installed: say so and offer stage 4b of `setup`; do not improvise with
+raw libraries when the user asked for a finished document.
+
 **Knowledge from a video, or how the video is made.** `video` is for knowledge: a lecture, a talk, a
 tutorial, a podcast interview, a bare link. If the user wants to understand how a clip, ad or vlog is
 built (hooks, pacing, editing), that is not `video`: say so and do it by hand, or ask "the knowledge

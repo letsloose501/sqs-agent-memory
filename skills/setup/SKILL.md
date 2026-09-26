@@ -100,6 +100,25 @@ external provider is chosen, say that note content leaves the machine.
 The MCP server comes with the plugin (`.mcp.json` runs `mempalace-mcp`); it appears after the app
 restarts. A vault that already has notes: run the `vault-index` skill in batches to card them.
 
+## Stage 4b: Office files (optional)
+
+Word, PowerPoint and Excel are handled by Anthropic's own `document-skills` plugin (`docx`, `pptx`,
+`xlsx`, and a `pdf` for editing, merging and filling PDFs). It is not bundled here: its license
+forbids copying and redistribution, so the user installs it from Anthropic under their own terms.
+
+First check whether they already have it: the Claude desktop and web apps ship these skills as
+`anthropic-skills:docx` and the like, and `claude plugin list` shows an installed
+`document-skills`. If neither, ask, then:
+
+```bash
+claude plugin marketplace add anthropics/skills
+claude plugin install document-skills@anthropic-agent-skills
+```
+
+(or the same as `/plugin marketplace add anthropics/skills` and
+`/plugin install document-skills@anthropic-agent-skills` inside a session). The skills appear after
+a restart or `/reload-plugins`.
+
 ## Stage 5: verify
 
 1. `setup.py check` again: everything required shows `ok`.

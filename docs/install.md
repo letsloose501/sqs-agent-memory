@@ -124,6 +124,7 @@ Restart Claude Code once more so the memory folder and the MemPalace server take
 | Transcripts of videos without captions (video skill, tier 3) | ffmpeg (Windows `winget install --id Gyan.FFmpeg -e`, macOS `brew install ffmpeg`) and a free Groq key from https://console.groq.com/keys in the `GROQ_API_KEY` environment variable or in `~/.config/agent-memory/.env` as `GROQ_API_KEY=...` |
 | The browser skill | `browser-harness`, see `skills/browser/references/setup.md` |
 | Compiling LaTeX | a TeX distribution (MiKTeX or TeX Live) |
+| Word, PowerPoint, Excel files | Anthropic's `document-skills`: `claude plugin marketplace add anthropics/skills`, then `claude plugin install document-skills@anthropic-agent-skills`. Already built in if you use the Claude desktop or web app. Not bundled with this plugin: its license forbids redistribution |
 
 ## Checking that it works
 

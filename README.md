@@ -124,6 +124,14 @@ when a task spans several.
 | `graphics` | infographics from ready templates (lists, comparisons, funnels, roadmaps) and charts from real data, offline |
 | `latex` | compilable LaTeX: theorems and proofs, derivations, tables, TikZ, Beamer slides |
 
+**Office files**
+
+Word, PowerPoint and Excel go through Anthropic's own
+[`document-skills`](https://github.com/anthropics/skills) (`docx`, `pptx`, `xlsx`, plus a `pdf` for
+editing PDFs). `setup` offers to install them and `router` sends Office work there. They are not
+copied into this plugin because their license forbids redistribution; in the Claude desktop and web
+apps they are already built in.
+
 **Work on the web**
 
 | Skill | What it does, and what sets it apart |
