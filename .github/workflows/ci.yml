@@ -1,0 +1,64 @@
+name: ci
+
+# Every push and pull request: the hooks on the three systems they run on, the skills through
+# SQS, the manifests through Claude Code's own validator, the version against the changelog.
+#
+# Actions are pinned to a commit with the tag beside it: a tag can be moved, a commit cannot.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # the hook tests make commits in throwaway repositories
+  GIT_AUTHOR_NAME: ci
+  GIT_AUTHOR_EMAIL: ci@example.com
+  GIT_COMMITTER_NAME: ci
+  GIT_COMMITTER_EMAIL: ci@example.com
+
+jobs:
+  hooks:
+    name: hooks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+      - name: every gate fires where it must and stays quiet where it must not
+        run: uv run --no-project --python 3.12 tests/test_hooks.py
+
+  skills:
+    name: skills (SQS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: letsloose501/sqs-skills@8bab69e09314f7c23b1e0db88c11a7f878d4c76f  # v2.1.0
+        with:
+          path: skills
+          command: check
+
+  manifest:
+    name: plugin manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: marketplace.json
+        run: npx --yes @anthropic-ai/claude-code@2.1.281 plugin validate .
+      - name: plugin.json
+        run: npx --yes @anthropic-ai/claude-code@2.1.281 plugin validate .claude-plugin/plugin.json
+
+  version:
+    name: version and changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
+      - name: plugin.json version has a changelog section
+        run: uv run --no-project --python 3.12 tools/release_notes.py --check

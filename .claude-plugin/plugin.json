@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agent-memory",
   "displayName": "Agent Memory",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Persistent agent memory in a git repository, an Obsidian knowledge vault indexed by MemPalace, and the skills that fill them: notes, video and PDF extraction, browser automation, skill quality checks, diagrams, LaTeX, safe commits.",
   "author": {
     "name": "letsloose501",
@@ -11,7 +11,15 @@
   "homepage": "https://github.com/letsloose501/sqs-agent-memory",
   "repository": "https://github.com/letsloose501/sqs-agent-memory",
   "license": "Apache-2.0",
-  "keywords": ["memory", "obsidian", "mempalace", "knowledge-base", "notes", "skills", "hooks"],
+  "keywords": [
+    "memory",
+    "obsidian",
+    "mempalace",
+    "knowledge-base",
+    "notes",
+    "skills",
+    "hooks"
+  ],
   "userConfig": {
     "memory_dir": {
       "type": "directory",

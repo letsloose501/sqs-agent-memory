@@ -1,5 +1,9 @@
 # agent-memory
 
+[![ci](https://github.com/letsloose501/sqs-agent-memory/actions/workflows/ci.yml/badge.svg)](https://github.com/letsloose501/sqs-agent-memory/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/letsloose501/sqs-agent-memory)](https://github.com/letsloose501/sqs-agent-memory/releases)
+[![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 A Claude Code plugin that gives the agent a memory that outlives the session, and gives you a
 knowledge base that fills itself from what you read and watch.
 
