@@ -1,5 +1,7 @@
 # Install and maintenance
 
+<!-- sqs-allow-file: ST011 - this file describes paths in the user's home that exist only after installation (config files, profiles); they are absent on a fresh machine or in CI. -->
+
 ## Install
 
 `browser-harness` 0.1.13 at the **reviewed commit** `afbcc38`, not the latest release, so exactly

@@ -1,5 +1,7 @@
 # MemPalace: the map of the vault
 
+<!-- sqs-allow-file: ST011 - this file describes paths in the user's home that exist only after installation (config files, profiles); they are absent on a fresh machine or in CI. -->
+
 MemPalace is a local MCP memory that holds the **structural map of the vault**: which notes exist,
 where, what they answer, how they connect. It lets the next session know the structure **without
 rescanning the whole vault**, and it finds a note by meaning when the exact word is unknown. The notes

@@ -77,8 +77,8 @@ The frontmatter carries `transcript_source`: which tier worked.
 **Force tier 3** for dense theory the user will want to quote, or a topic full of terms and
 names auto-captions cripple. For an overview video it wastes quota: Groq's free tier caps audio
 per hour and per day (the current numbers are on your Groq console's limits page). The key:
-`GROQ_API_KEY` in the environment, or a line `GROQ_API_KEY=...` in a `.env` file you create in a
-`agent-memory` folder inside `$HOME/.config`; free at console.groq.com/keys.
+`GROQ_API_KEY` in the environment, or a line `GROQ_API_KEY=...` in a `.env` file you create: the
+folder is `agent-memory` inside the `.config` folder of your home directory. Free at console.groq.com/keys.
 
 ### When it fails
 

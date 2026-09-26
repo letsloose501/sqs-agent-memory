@@ -5,10 +5,12 @@ description: >-
   creates the agent memory repository and its private GitHub remote, creates a starter Obsidian
   vault, points Claude Code's auto memory at the repository, configures MemPalace as the vault
   index (embedding model, languages), and verifies everything. Use right after installing the
-  plugin, on "set up second brain", "install the memory system", "connect my vault", "memory is
+  plugin, on "set up agent memory", "install the memory system", "connect my vault", "memory is
   not loading", "move my memory folder", or when the SessionStart hook says the plugin is not
   configured.
 ---
+
+<!-- sqs-allow-file: ST011 - this file describes paths in the user's home that exist only after installation (config files, profiles); they are absent on a fresh machine or in CI. -->
 
 # Set up agent-memory
 
