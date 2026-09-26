@@ -12,7 +12,7 @@ description: >-
 # Route
 
 Name the route and offer the first step; do not recite the skill list. One line in the user's
-language, like "route: `/agent-memory:grill-me` -> `/agent-memory:to-spec` -> `/agent-memory:to-tickets`
+language, like "route: `/agent-memory:grilling` -> `/agent-memory:to-spec` -> `/agent-memory:to-tickets`
 -> `/agent-memory:implement`, start with the interview?", and that is all. Do not ask permission for
 every next step: ask at forks.
 
@@ -53,12 +53,12 @@ reach the MemPalace index through `notes` step 8; a vault that grew without it: 
 Three entrances, one channel:
 
 ```
-A. an idea of their own  ->  grill-me   --+
+A. an idea of their own  ->  grilling   --+
 B. someone else's brief  ------------------+->  to-spec -> codebase-design -> to-tickets -> implement
 C. a clear task          ------------------+
 ```
 
-- **`grill-me` / `grilling`**: the interview that surfaces unstated assumptions (why, what if not,
+- **`grilling`**: the interview that surfaces unstated assumptions (why, what if not,
   does it exist already, the sign of success, stack, scale), then the decision tree.
 - **`to-spec`**: what and why, and the boundaries; no paths or signatures, so it survives a refactor.
 - **`codebase-design`**: modules, seams, interface depth. A reference read at the moment the shape is decided.

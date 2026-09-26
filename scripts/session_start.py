@@ -3,7 +3,8 @@
 On every session start it prints the memory rules (`claude/rules.md` in the memory
 repository). A plugin cannot add to CLAUDE.md, and a CLAUDE.md inside a plugin is not
 loaded, so this hook is how the rules reach every session. SessionStart stdout with exit
-code 0 is added to the context.
+code 0 is added to the context. It then prints the memory search command with real paths
+(memory_recall.py), because nothing else tells the agent that entries outside the index exist.
 
 After a compaction (matcher `compact`) it also prints what the summary tends to drop: gate
 markers not yet checked, vault notes touched in the last hours, uncommitted edits in the
@@ -77,6 +78,18 @@ def pending_markers() -> list[str]:
     return out
 
 
+def recall_hint(mem: Path) -> str:
+    """The search command with real paths. Skills and the agent do not get the plugin's paths as
+    variables, and a command the agent has to assemble itself is a command it skips."""
+    script = Path(__file__).resolve().parent / "memory_recall.py"
+    run = f'uv run --no-project "{script}" --memory "{mem}"'
+    return ("Memory search. MEMORY.md holds only what fits in the index; the rest is found by content:\n"
+            f'  {run} recall "<English wording>" "<the user\'s own words>"\n'
+            f"  {run} read <name> --level outline   (or abstract, full)\n"
+            "Send both wordings: entries are in either language. Search before answering from memory "
+            "and before writing a new entry, so an existing one is updated instead of duplicated.")
+
+
 def block(title: str, lines: list[str]) -> list[str]:
     return [f"{title}:"] + [f"  {ln}" for ln in lines] if lines else []
 
@@ -93,6 +106,8 @@ def main() -> int:
     if rules.is_file():
         print(rules.read_text(encoding="utf-8", errors="replace").strip())
         print()
+    print(recall_hint(mem))
+    print()
 
     if payload.get("source") != "compact":
         return 0

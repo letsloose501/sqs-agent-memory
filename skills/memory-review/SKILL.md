@@ -77,6 +77,10 @@ not work, not that a fourth entry is needed.
 2. **Outdated dates**: windows, deadlines, reminders, promised actions that have passed.
    Relative wording ("next week") becomes absolute.
 3. **Description drifted from content.** The description is the only thing an entry is recalled by.
+   It names what the entry is for in the words of the task, in English, not only the tool's name:
+   bad "blender MCP", good "blender MCP, the server that lets the agent drive Blender for 3D
+   modelling". Search matches words, so a description made of proper nouns is found only by
+   someone who already knows the name. The `recall` misses in phase 3 point at such entries.
    **Inferred entries** (`source: inferred`): confirmed since? Then `observed` or `stated`. Refuted?
    Retire it. Entries with no `source` yet: add it when you edit them anyway.
 4. **Index integrity**: files without an index line, lines without a file. Keep the index under
@@ -100,6 +104,14 @@ uv run --no-project "${CLAUDE_PLUGIN_ROOT}/scripts/memory_eval.py" --memory "${u
 It appends a row to `${user_config.memory_dir}/scripts/history.tsv`. Show it **next to the previous row**: the direction
 matters, not the snapshot. Worse is a finding, not something to keep quiet about. The "stale" list
 is a screen, not a verdict: read each entry before editing it.
+
+The `recall` line scores `${CLAUDE_PLUGIN_ROOT}/scripts/memory_recall.py` on
+`${user_config.memory_dir}/eval/recall-cases.tsv`. Grow that set from
+the week, not from imagination: when a session had to look for an entry (the user asked "what did
+we decide about X", or a new entry turned out to duplicate an old one), add that question with the
+entry it should have found. Word it the way it was asked, not with the entry's title words, and
+join the English wording and the user's own words with ` | `. A case whose entry no longer exists
+is reported as "not measurable": fix the case against the files.
 
 ## Report
 

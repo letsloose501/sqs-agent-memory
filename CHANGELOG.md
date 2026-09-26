@@ -5,6 +5,20 @@ publishes a release with the section below as its notes.
 
 ## Unreleased
 
+- Memory search: `scripts/memory_recall.py`. `recall` ranks all entries (project and journal
+  ones too) with BM25 over SQLite FTS5 and answers with one line per hit, never the entry itself;
+  `read --level abstract|outline|full` opens one entry as deep as needed. Several wordings are fused
+  by their best reciprocal rank, so an English query and the user's own words work together and an
+  entry written in one language is not outvoted by entries half-matching both. Standard library
+  only, no index on disk. The session start hook prints the command with real paths.
+- `memory_eval.py` scores the search on `eval/recall-cases.tsv` in the memory repo (top 3 and top 5,
+  three new history columns; an older history file gets the new header). No reference set prints
+  "not set up" and writes empty fields, not zeros. `memory-review` says how to grow the set and
+  that a description names what the entry is for, not only the tool's name.
+- Removed `grill-me`: it only called `grilling`, which runs on "grill me" by itself. The router
+  now names `/agent-memory:grilling`.
+- README: positioning covers the toolkit, skills grouped by job, measured search numbers, limits.
+
 - Bundled SQS 2.2.0: a missing path into a tool's own folder (`~/.claude`, `~/.config/<tool>`,
   `~/.mempalace`) is ST017, a warning, instead of ST011; the three `sqs-allow-file: ST011` waivers
   that worked around it are gone, and CI runs the v2.2.0 action.

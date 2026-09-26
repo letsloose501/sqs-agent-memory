@@ -17,6 +17,12 @@ What is measured and why:
             no "retired" mark. Relying on an outdated fact is worse than not knowing it.
   source    entries stated by the user, observed in work, inferred by the agent, or with no
             source yet. Inferred entries are hypotheses until confirmed.
+  recall    how often memory_recall.py puts the right entry in its top 3 and top 5, on the
+            reference set in <memory>/eval/recall-cases.tsv (format in memory_recall.py). The
+            index outgrows its ceiling sooner or later; from then on search is the only way to
+            an entry, and without this number a worse search looks exactly like a better one.
+            No reference set means "not set up", written as an empty field: no set is not a
+            broken meter, and a zero would read as a collapse.
 
 "Not measured" is not zero: a metric that could not be read prints as such and is written
 as an empty field, and the exit code is 2.
@@ -30,6 +36,9 @@ import datetime as dt
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import memory_recall  # noqa: E402  (a sibling script, not a package)
 
 MAX_INDEX_KB = 20.0
 MAX_INDEX_LINES = 150
@@ -122,16 +131,36 @@ def main() -> int:
     for n in stale[:10]:
         print(f"            {n}")
 
+    cases_file = memory_recall.default_cases(mem)
+    rec = None
+    if cases_file.is_file():
+        rec = memory_recall.evaluate(mem, memory_recall.read_cases(cases_file))
+        n = rec["cases"]
+        print(f"recall:   top 3 {rec['hits'][3]}/{n}, top 5 {rec['hits'][5]}/{n}")
+        for m in rec["misses"][:10]:
+            print(f"            miss: {m}")
+        for b in rec["broken"]:
+            print(f"            not measurable: {b}")
+    else:
+        print(f"recall:   not set up (no {cases_file.relative_to(mem).as_posix()}; format in memory_recall.py)")
+
     if not args.dry:
         hist = mem / "scripts" / "history.tsv"
         hist.parent.mkdir(exist_ok=True)
-        new = not hist.exists()
+        header = ("date\tindex_lines\tindex_kb\tentries\tunindexed\tdangling\tno_desc\tstale"
+                  "\tinferred\tno_source\trecall_top3\trecall_top5\trecall_cases\n")
+        if hist.exists():
+            # Columns were added on 26.09.2026: an older file gets the new header, old rows stay short.
+            old = hist.read_text(encoding="utf-8").splitlines(keepends=True)
+            if old and old[0] != header:
+                hist.write_text(header + "".join(old[1:]), encoding="utf-8")
+        else:
+            hist.write_text(header, encoding="utf-8")
+        cells = ["", "", ""] if rec is None else [rec["hits"][3], rec["hits"][5], rec["cases"]]
         with hist.open("a", encoding="utf-8") as fh:
-            if new:
-                fh.write("date\tindex_lines\tindex_kb\tentries\tunindexed\tdangling\tno_desc\tstale"
-                         "\tinferred\tno_source\n")
             fh.write(f"{today.isoformat()}\t{len(lines)}\t{kb:.1f}\t{len(entries)}\t{len(unindexed)}\t"
-                     f"{len(dangling)}\t{len(no_desc)}\t{len(stale)}\t{sources['inferred']}\t{sources['missing']}\n")
+                     f"{len(dangling)}\t{len(no_desc)}\t{len(stale)}\t{sources['inferred']}\t{sources['missing']}\t"
+                     + "\t".join(str(c) for c in cells) + "\n")
 
     if kb > MAX_INDEX_KB or len(lines) > MAX_INDEX_LINES:
         print("\nThe index is over its ceiling: compact it (shorter lines, merge close entries, "

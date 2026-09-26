@@ -178,11 +178,74 @@ def main() -> int:
     r = hook("verify_vault.py", {}, env, "--stop")
     expect("vault: nothing touched, nothing checked", r.returncode == 0 and not r.stderr.strip())
 
+    # -- memory_recall and the recall line of memory_eval (a separate memory, no git)
+    rm = tmp / "recall"
+    rm.mkdir()
+    (rm / "MEMORY.md").write_text("# Agent memory\n\n- [Vault index](palace-repair.md) - rebuild it from sqlite\n",
+                                  encoding="utf-8")
+    (rm / "palace-repair.md").write_text(
+        "---\nname: palace-repair\ndescription: The vault index kept crashing on every read\n"
+        "metadata:\n  type: reference\n  source: observed\n---\n## Cause\n\nAn interrupted write left the "
+        "graph inconsistent.\n\nSECOND-PARAGRAPH-MARKER opens it. TAIL-MARKER stays out of the outline.\n", encoding="utf-8")
+    (rm / "ssh-key.md").write_text(
+        "---\nname: ssh-key\ndescription: Ключ лежит в агенте Windows\nmetadata:\n  type: reference\n"
+        "  source: observed\n---\nИз bash ключа не видно, звать ssh.exe из System32.\n", encoding="utf-8")
+    (rm / "unrelated.md").write_text("---\nname: unrelated\ndescription: Weekly groceries list\n---\nMilk.\n",
+                                     encoding="utf-8")
+
+    def recall(*args: str) -> subprocess.CompletedProcess:
+        return hook("memory_recall.py", {}, {}, "--memory", str(rm), *args)
+
+    r = recall("recall", "crashes")
+    expect("recall: English word form found through the stemmer",
+           r.returncode == 0 and r.stdout.startswith("1. palace-repair"), r.stdout[:160])
+    expect("recall: answers with lines, not the entry body", "SECOND-PARAGRAPH-MARKER" not in r.stdout)
+    r = recall("recall", "ключом")
+    expect("recall: Russian word form found through the prefix", r.stdout.startswith("1. ssh-key"), r.stdout[:120])
+    r = recall("recall", "private credential invisible", "ключ из bash")
+    expect("recall: the second wording reaches what the first cannot", "ssh-key" in r.stdout, r.stdout[:120])
+    r = recall("recall", "rebuild")
+    expect("recall: the index line counts as the entry's summary", r.stdout.startswith("1. palace-repair"),
+           r.stdout[:120])
+    r = recall("recall", "quantum chromodynamics")
+    expect("recall: nothing found exits 1", r.returncode == 1, r.stdout[:80])
+    r = recall("read", "palace-repair", "--level", "outline")
+    expect("read: outline shows headings, not whole paragraphs",
+           "## Cause" in r.stdout and "SECOND-PARAGRAPH-MARKER opens" in r.stdout and "TAIL-MARKER" not in r.stdout, r.stdout[-200:])
+    r = recall("read", "palace-repair", "--level", "full")
+    expect("read: full prints the file", "TAIL-MARKER stays out" in r.stdout)
+    # An entry in one language, first for the English wording and absent from the Russian list,
+    # must beat an entry sitting second in both lists (summing across wordings put it below).
+    fz = tmp / "fusion"
+    fz.mkdir()
+    (fz / "target.md").write_text("---\nname: target\ndescription: Zebra crossing rules for pedestrians\n---\n"
+                                  "Zebra.\n", encoding="utf-8")
+    (fz / "both.md").write_text("---\nname: both\ndescription: Crossing notes\n---\nправила перехода\n",
+                                encoding="utf-8")
+    (fz / "ru.md").write_text("---\nname: ru\ndescription: Правила перехода улицы\n---\n"
+                              "правила перехода, правила перехода\n", encoding="utf-8")
+    r = hook("memory_recall.py", {}, {}, "--memory", str(fz), "recall", "zebra crossing", "правила перехода")
+    expect("recall: a one-language entry first in its wording is not outvoted", r.stdout.startswith("1. target"),
+           r.stdout[:160])
+
+    r = hook("memory_eval.py", {}, {}, "--memory", str(rm), "--dry")
+    expect("eval: no reference set is 'not set up', not a zero",
+           r.returncode == 0 and "recall:   not set up" in r.stdout, r.stdout[-200:])
+    (rm / "eval").mkdir()
+    (rm / "eval" / "recall-cases.tsv").write_text(
+        "# comment\nthe index crashed | индекс упал\tpalace-repair\nno such thing\tmissing-entry\n", encoding="utf-8")
+    r = hook("memory_eval.py", {}, {}, "--memory", str(rm), "--dry")
+    expect("eval: recall measured on the reference set", "recall:   top 3 1/1" in r.stdout, r.stdout[-300:])
+    expect("eval: a case naming no entry is listed apart, not counted as a miss",
+           "not measurable" in r.stdout and "missing-entry" in r.stdout, r.stdout[-300:])
+
     # -- session_start
     (mem / "claude").mkdir()
     (mem / "claude" / "rules.md").write_text("# Working rules\nRULE-MARKER\n", encoding="utf-8")
     r = hook("session_start.py", {"source": "startup"}, env)
     expect("session: rules printed at start", r.returncode == 0 and "RULE-MARKER" in r.stdout, r.stdout[:120])
+    expect("session: memory search command printed with real paths",
+           "memory_recall.py" in r.stdout and str(mem) in r.stdout, r.stdout[-300:])
     r = hook("session_start.py", {"source": "compact"}, env)
     expect("session: state added after compaction", "State at compaction time" in r.stdout, r.stdout[-200:])
     r = hook("session_start.py", {"source": "startup"}, {k: v for k, v in env.items() if "MEMORY_DIR" not in k})
