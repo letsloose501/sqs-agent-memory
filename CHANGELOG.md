@@ -5,6 +5,13 @@ publishes a release with the section below as its notes.
 
 ## Unreleased
 
+- Transcript digest: `scripts/transcript_digest.py` does the mechanical half of phase 1 of
+  `memory-review`. It picks the week by the last entry inside each transcript (not mtime), reads all
+  projects but skips generated `*evals*` ones, keeps only the user's own messages, lists rejected
+  tool calls and groups failed ones by signature across distinct sessions (`REPEAT` from two; a
+  shell failure is keyed by its exit code and last output line, not the bare "Exit code N").
+  Grepping raw transcripts matched the rules text that rides in every turn, so it found noise.
+  Five tests, each shown to fail on a matching break of the script.
 - Memory search: `scripts/memory_recall.py`. `recall` ranks all entries (project and journal
   ones too) with BM25 over SQLite FTS5 and answers with one line per hit, never the entry itself;
   `read --level abstract|outline|full` opens one entry as deep as needed. Several wordings are fused

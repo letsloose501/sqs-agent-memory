@@ -89,7 +89,10 @@ on your own CPU or GPU.
 
 **Upkeep.** Mistakes the agent made and fixed go to a journal. A weekly review sorts it by failure
 class, finds what repeated across sessions, retires stale facts, fixes descriptions search could
-not match, keeps failed approaches as dead ends, and proposes, never performs, deletions.
+not match, keeps failed approaches as dead ends, and proposes, never performs, deletions. The
+mechanical half is scripts, so the model spends its turn on judgement: `journal_reflect.py`
+pre-sorts the journal, `transcript_digest.py` boils the week's sessions down to your own messages
+and the tool failures that repeated across sessions, and `memory_eval.py` measures the result.
 
 Rule of thumb for where something goes: a fact about you or a decision with its reason goes to
 memory; knowledge about the world goes to the vault; a procedure that is always done the same way
@@ -185,6 +188,7 @@ The code chain is adapted from [Matt Pocock's skills](https://github.com/mattpoc
 | `memory_recall.py` | search entries by content (`recall`), open one by level (`read`), score a reference set (`eval`) |
 | `memory_eval.py` | index size, unreachable entries, missing descriptions, stale facts, sources, search score; history over time |
 | `journal_reflect.py` | deterministic pre-sort of the mistakes journal for the weekly review |
+| `transcript_digest.py` | the week's sessions across all projects, boiled down for the weekly review: the user's own messages, rejected tool calls, failed tool calls grouped by distinct sessions (`REPEAT` from two); picks the week by the last entry in each file, not mtime |
 | `vault_index.py` | writes MemPalace summary cards for vault notes |
 
 ## Install

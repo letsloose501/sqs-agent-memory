@@ -12,6 +12,7 @@ Exit 0: all passed. Exit 1: something failed (listed).
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import os
 import subprocess
@@ -156,6 +157,47 @@ def main() -> int:
            if "verification:" in r.stdout else False)
     dead = r.stdout.split("Dead ends")[1] if "Dead ends" in r.stdout else ""
     expect("reflect: dead ends listed separately", "2026-01-06-c.md" in dead and "2026-01-06-c.md" not in verif)
+
+    # -- transcript_digest
+    projects = tmp / "projects"
+    now = dt.datetime.now(dt.timezone.utc)
+
+    def session(proj: str, sid: str, when: dt.datetime, human: str, err: str, cmd: str, times: int = 1) -> None:
+        stamp = when.isoformat().replace("+00:00", "Z")
+        rows = [
+            {"type": "user", "timestamp": stamp, "origin": {"kind": "human"},
+             "message": {"content": human + "<system-reminder>rules mention heredoc</system-reminder>"}},
+            {"type": "user", "timestamp": stamp, "message": {"content": "Base directory for this skill: x"}},
+        ]
+        for i in range(times):
+            rows += [
+                {"type": "assistant", "timestamp": stamp, "message": {"content": [
+                    {"type": "tool_use", "id": f"t{sid}{i}", "name": "Bash", "input": {"command": cmd}}]}},
+                {"type": "user", "timestamp": stamp, "message": {"content": [
+                    {"type": "tool_result", "tool_use_id": f"t{sid}{i}", "is_error": True, "content": err}]}},
+            ]
+        d = projects / proj
+        d.mkdir(parents=True, exist_ok=True)
+        (d / f"{sid}.jsonl").write_text("\n".join(json.dumps(r) for r in rows), encoding="utf-8")
+
+    missing = "Exit code 1\nTraceback (most recent call last):\nModuleNotFoundError: No module named 'yaml'"
+    session("proj-a", "aaaa1111", now, "fix the build", missing, "python a.py")
+    session("proj-b", "bbbb2222", now, "and this one", missing.replace("yaml", "requests"), "python b.py")
+    session("proj-a", "cccc3333", now - dt.timedelta(days=30), "old session", missing, "python c.py")
+    session("x-evals", "dddd4444", now, "Skill catalog: generated", missing, "python d.py")
+    session("proj-b", "eeee5555", now, "one bad afternoon", "Exit code 128\nfatal: bad revision 'x'", "git log x", times=2)
+    os.utime(projects / "proj-a" / "cccc3333.jsonl", None)  # a fresh mtime must not pull it into the week
+    r = subprocess.run([sys.executable, str(SCRIPTS / "transcript_digest.py"), "--root", str(projects)],
+                       capture_output=True, text=True, encoding="utf-8")
+    groups = [ln for ln in r.stdout.splitlines() if ln.startswith("- ") and " errors: `" in ln]
+    expect("digest: one error in two sessions of two projects is a REPEAT, keyed by the error line",
+           any(ln.startswith("- REPEAT 2 sessions") and "ModuleNotFoundError" in ln for ln in groups), r.stdout[:300])
+    expect("digest: two failures in one session are not a REPEAT",
+           any("fatal: bad revision" in ln and not ln.startswith("- REPEAT") for ln in groups), "\n".join(groups))
+    expect("digest: the window goes by the last entry, not mtime", "old session" not in r.stdout)
+    expect("digest: generated evals projects are skipped", "Skill catalog" not in r.stdout and "dddd4444" not in r.stdout)
+    expect("digest: system reminders and skill bodies are dropped",
+           "fix the build" in r.stdout and "rules mention" not in r.stdout and "Base directory" not in r.stdout)
 
     # -- verify_vault
     (vault / "Target.md").write_text("# Target\n\n## Part\n", encoding="utf-8")

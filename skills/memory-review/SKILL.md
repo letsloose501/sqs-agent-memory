@@ -14,14 +14,24 @@ repeated mistakes. Report to the user in their language; everything written into
 - Memory: `${user_config.memory_dir}`: entries, index `MEMORY.md`, draft `mistakes/`, rules in
   `claude/rules.md`, constitution `README.md` and `SCOPES.md` (protected by a hook: propose,
   never rewrite).
-- Transcripts: `~/.claude/projects/*/*.jsonl`. Take only sessions whose **last message inside the
-  file** is within 7 days. Not `mtime`: any bulk file operation gives old sessions a fresh mtime,
-  and the window fills with months-old sessions. Files are large: read with grep and tails.
+- Transcripts: `~/.claude/projects/*/*.jsonl`, all projects (memory is shared across them). Do not
+  grep them raw: read the digest from phase 1, and open a transcript only to quote evidence.
 - Vault: `${user_config.vault_dir}`, the source for checking facts. **Change nothing in it.**
 
 ## Phase 1: the week's transcripts
 
-Look for patterns, not events:
+Build the digest first:
+`uv run --no-project "${CLAUDE_PLUGIN_ROOT}/scripts/transcript_digest.py" --exclude-session <this session's id> --out <a temp file>`.
+It takes a session into the week by the **last timestamp inside the file**, not by mtime (a bulk
+file operation gives old sessions a fresh mtime), skips generated `*evals*` projects, keeps only
+the user's own messages (system reminders and skill bodies dropped), groups failed tool calls by
+signature across sessions with `REPEAT` at two or more distinct sessions, and lists tool calls
+the user rejected. Why not grep: the rules text rides in every turn, so symptom words match every
+transcript and the search drowns in noise. The digest is a pre-sort, not a verdict: a `REPEAT` may
+be one session resumed twice (identical commands in both), and a mistake that failed no tool is
+visible only in the user's messages.
+
+Read the digest and look for patterns, not events:
 
 - **A repeated mistake**: the same pitfall in different sessions.
 - **The user's corrections**: they rephrased, cancelled, asked for it done differently, and that
