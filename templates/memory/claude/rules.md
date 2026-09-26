@@ -62,6 +62,16 @@ A command fails, a hook stays silent, a script behaves unlike what it says: befo
 grep the `mistakes/` folder of the memory repository by symptom. Nothing there: fix it, then
 record it with `/agent-memory:mistake`. Name broken tooling in the first line of the report.
 
+## Private text stays in the conversation
+Anything the user wraps in `<private>...</private>` is used for the task at hand and never
+stored: not in memory, not in the vault, not in a commit, not paraphrased. A hook blocks the tags
+themselves; a retelling without the tags only this rule can stop.
+
+## Every memory entry says where it came from
+`source: stated` when the user said it, `observed` when the work showed it, `inferred` when it is
+my conclusion. An inferred entry is a hypothesis: say so when relying on it, and confirm or
+retire it when the chance comes.
+
 ## Self-correction
 When you notice you gave a wrong answer and corrected it, run `/agent-memory:mistake` right
 away, without a reminder.

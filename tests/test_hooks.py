@@ -73,12 +73,29 @@ def main() -> int:
     expect("literalpath: wildcard delete untouched", r.returncode == 0 and not r.stdout.strip())
 
     # -- guard_memory_scope
-    entry = "---\nname: x\ndescription: y\nmetadata:\n  type: user\n---\nbody\n"
+    entry = "---\nname: x\ndescription: y\nmetadata:\n  type: user\n  source: stated\n---\nbody\n"
+    no_source = entry.replace("  source: stated\n", "")
     w = lambda path, content: {"tool_name": "Write", "tool_input": {"file_path": str(path), "content": content}}
     r = hook("guard_memory_scope.py", w(mem / "x.md", entry), env)
     expect("memory: a well-formed entry passes", r.returncode == 0, r.stderr[:80])
     r = hook("guard_memory_scope.py", w(mem / "x.md", "just text"), env)
     expect("memory: entry without frontmatter blocked", r.returncode == 2)
+    r = hook("guard_memory_scope.py", w(mem / "x.md", no_source), env)
+    expect("memory: entry without source blocked", r.returncode == 2 and "source" in r.stderr, r.stderr[:80])
+    r = hook("guard_memory_scope.py", w(mem / "x.md", entry.replace("stated", "guessed")), env)
+    expect("memory: an unknown source value blocked", r.returncode == 2)
+    r = hook("guard_memory_scope.py", w(mem / "mistakes" / "2026-01-01-x.md", "MISTAKE: a"), env)
+    expect("memory: the journal needs no frontmatter", r.returncode == 0, r.stderr[:80])
+    r = hook("guard_memory_scope.py", w(mem / "x.md", entry + "<private>my salary</private>"), env)
+    expect("private: blocked in memory", r.returncode == 2 and "private" in r.stderr.lower())
+    r = hook("guard_memory_scope.py", w(mem / "x.md", entry + "<private>x</private>"), {**env, "AGENT_MEMORY_UNLOCK": "1"})
+    expect("private: unlock does not open it", r.returncode == 2)
+    r = hook("guard_memory_scope.py", w(vault / "Note.md", "text <private>x</private>"), env)
+    expect("private: blocked in the vault", r.returncode == 2)
+    r = hook("guard_memory_scope.py", w(vault / "Note.md", "an ordinary note"), env)
+    expect("private: an ordinary vault note passes", r.returncode == 0, r.stderr[:80])
+    r = hook("guard_memory_scope.py", w(tmp / "elsewhere.md", "<private>x</private>"), env)
+    expect("private: files outside memory and vault ignored", r.returncode == 0)
     r = hook("guard_memory_scope.py", w(mem / "x.md", entry + "key ghp_" + "a" * 30), env)
     expect("memory: a secret blocked", r.returncode == 2 and "secret" in r.stderr.lower())
     r = hook("guard_memory_scope.py", w(mem / "x.md", entry + "key ghp_" + "a" * 30), {**env, "AGENT_MEMORY_UNLOCK": "1"})
@@ -93,6 +110,47 @@ def main() -> int:
     expect("memory: files outside memory ignored", r.returncode == 0)
     r = hook("guard_memory_scope.py", w(mem / "x.md", "just text"), {k: v for k, v in env.items() if "MEMORY_DIR" not in k})
     expect("memory: unconfigured plugin stays quiet", r.returncode == 0)
+
+    # -- file_context
+    (mem / "tool-pitfall.md").write_text(entry.replace("body", "Run `frobnicate.py` with --safe, it corrupts otherwise."),
+                                         encoding="utf-8")
+    (mem / "mistakes").mkdir(exist_ok=True)
+    (mem / "mistakes" / "2026-01-02-skill.md").write_text("MISTAKE: m\nPATTERN: edit video/SKILL.md carefully\n",
+                                                        encoding="utf-8")
+    read = lambda p, s="s1": {"tool_name": "Read", "session_id": s, "tool_input": {"file_path": str(p)}}
+    ctx = lambda r: json.loads(r.stdout or "{}").get("hookSpecificOutput", {}).get("additionalContext", "")
+    r = hook("file_context.py", read(tmp / "proj" / "frobnicate.py"), env)
+    expect("file-context: memory about the file is surfaced", "tool-pitfall.md" in ctx(r) and r.returncode == 0, r.stdout[:120])
+    r = hook("file_context.py", read(tmp / "proj" / "frobnicate.py"), env)
+    expect("file-context: the same file is served once per session", not r.stdout.strip())
+    r = hook("file_context.py", read(tmp / "proj" / "frobnicate.py", "s2"), env)
+    expect("file-context: a new session gets it again", "tool-pitfall.md" in ctx(r))
+    r = hook("file_context.py", read(tmp / "skills" / "video" / "SKILL.md"), env)
+    expect("file-context: a generic name matches by parent/name", "2026-01-02-skill.md" in ctx(r), r.stdout[:120])
+    r = hook("file_context.py", read(tmp / "skills" / "notes" / "SKILL.md"), env)
+    expect("file-context: a generic name alone does not match", not r.stdout.strip(), r.stdout[:120])
+    r = hook("file_context.py", read(tmp / "proj" / "unrelated.py"), env)
+    expect("file-context: nothing known, nothing said", not r.stdout.strip())
+    r = hook("file_context.py", read(mem / "tool-pitfall.md"), env)
+    expect("file-context: reading memory itself adds nothing", not r.stdout.strip())
+
+    # -- journal_reflect
+    (mem / "mistakes" / "2026-01-03-a.md").write_text(
+        "MISTAKE: said verified without a check\nPATTERN: name the artifact before claiming checked\n", encoding="utf-8")
+    (mem / "mistakes" / "2026-01-05-b.md").write_text(
+        "ОШИБКА: заявил проверенное\nПАТТЕРН: проверил только тем, что могло показать обратное\n", encoding="utf-8")
+    (mem / "mistakes" / "2026-01-06-c.md").write_text(
+        "MISTAKE: tried --cookies-from-browser\nPATTERN: it fails here, use a cookies file\nKIND: dead_end\n",
+        encoding="utf-8")
+    r = subprocess.run([sys.executable, str(SCRIPTS / "journal_reflect.py"), "--memory", str(mem)],
+                       capture_output=True, text=True, encoding="utf-8")
+    verif = r.stdout.split("verification:")[1].split("##")[0] if "verification:" in r.stdout else ""
+    expect("reflect: English and Russian entries land in one class",
+           "2026-01-03-a.md" in verif and "2026-01-05-b.md" in verif, r.stdout[:300])
+    expect("reflect: two distinct days propose a rule", "2 distinct day(s)" in r.stdout.split("verification:")[1][:80]
+           if "verification:" in r.stdout else False)
+    dead = r.stdout.split("Dead ends")[1] if "Dead ends" in r.stdout else ""
+    expect("reflect: dead ends listed separately", "2026-01-06-c.md" in dead and "2026-01-06-c.md" not in verif)
 
     # -- verify_vault
     (vault / "Target.md").write_text("# Target\n\n## Part\n", encoding="utf-8")

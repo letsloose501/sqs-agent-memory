@@ -35,6 +35,7 @@ name: <short-slug, same as the file name>
 description: <one line; the entry is recalled by it, so it matters more than the body>
 metadata:
   type: user | feedback | project | reference
+  source: stated | observed | inferred
 ---
 
 <the fact; for feedback and project, add **Why:** and **How to apply:** lines>
@@ -43,6 +44,13 @@ Links to neighbours: [[their-slug]].
 
 Types: `user` (who they are), `feedback` (how to work with them), `project` (current work and
 constraints), `reference` (pointers to outside resources).
+
+Source: `stated` (the user said it; quote them when it matters), `observed` (seen in the work: a
+command output, a file, a measurement), `inferred` (the agent's conclusion, a hypothesis until
+confirmed). A hook refuses a new entry without it.
+
+Optional `outcome: dead_end` marks an approach that was tried and failed, so nobody re-derives it;
+such entries go under "Dead ends" in the index.
 
 ## Rules that keep memory from rotting
 

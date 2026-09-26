@@ -15,6 +15,8 @@ What is measured and why:
   no-desc   entries without a `description`: an entry is recalled by it.
   stale     entries with a promise dated in the past (a deadline, a reminder, a window) and
             no "retired" mark. Relying on an outdated fact is worse than not knowing it.
+  source    entries stated by the user, observed in work, inferred by the agent, or with no
+            source yet. Inferred entries are hypotheses until confirmed.
 
 "Not measured" is not zero: a metric that could not be read prints as such and is written
 as an empty field, and the exit code is 2.
@@ -87,12 +89,15 @@ def main() -> int:
     dangling = sorted(n for n in linked if not (mem / n).exists())
 
     no_desc, stale = [], []
+    sources = {"stated": 0, "observed": 0, "inferred": 0, "missing": 0}
     today = dt.date.today()
     for p in entries:
         text = p.read_text(encoding="utf-8", errors="replace")
         head = text[:800]
         if not re.search(r"^description:\s*\S", head, re.M):
             no_desc.append(p.name)
+        m = re.search(r"^\s*source:\s*(stated|observed|inferred)\s*$", head, re.M | re.I)
+        sources[m.group(1).lower() if m else "missing"] += 1
         if RETIRED_RE.search(text):
             continue
         for line in text.splitlines():
@@ -110,6 +115,9 @@ def main() -> int:
     for n in dangling[:10]:
         print(f"            no file:     {n}")
     print(f"no-desc:  {len(no_desc)}" + (f"  ({', '.join(no_desc[:6])})" if no_desc else ""))
+    print(f"source:   stated {sources['stated']}, observed {sources['observed']}, "
+          f"inferred {sources['inferred']}, missing {sources['missing']}  "
+          f"(inferred entries are hypotheses: confirm or retire them)")
     print(f"stale:    {len(stale)}  (a screen, not a verdict: read each before editing)")
     for n in stale[:10]:
         print(f"            {n}")
@@ -120,9 +128,10 @@ def main() -> int:
         new = not hist.exists()
         with hist.open("a", encoding="utf-8") as fh:
             if new:
-                fh.write("date\tindex_lines\tindex_kb\tentries\tunindexed\tdangling\tno_desc\tstale\n")
+                fh.write("date\tindex_lines\tindex_kb\tentries\tunindexed\tdangling\tno_desc\tstale"
+                         "\tinferred\tno_source\n")
             fh.write(f"{today.isoformat()}\t{len(lines)}\t{kb:.1f}\t{len(entries)}\t{len(unindexed)}\t"
-                     f"{len(dangling)}\t{len(no_desc)}\t{len(stale)}\n")
+                     f"{len(dangling)}\t{len(no_desc)}\t{len(stale)}\t{sources['inferred']}\t{sources['missing']}\n")
 
     if kb > MAX_INDEX_KB or len(lines) > MAX_INDEX_LINES:
         print("\nThe index is over its ceiling: compact it (shorter lines, merge close entries, "

@@ -35,7 +35,12 @@ MISTAKE: [what I did wrong]
 WHY: [what caused it]
 FIX: [how it was fixed now]
 PATTERN: [how not to repeat it: the valuable part]
+KIND: mistake | dead_end
 ```
+
+`KIND: dead_end` is for an approach that was tried and does not work here (a flag that fails on
+this machine, a library that cannot do the job): the weekly review lists dead ends separately so
+nobody re-derives them. Leave KIND out for an ordinary mistake.
 
 Put the effort into PATTERN and phrase it so it covers a **class of cases**, not today's
 command: "empty output is not a result until you have looked at the exit code", not "`ls-remote`

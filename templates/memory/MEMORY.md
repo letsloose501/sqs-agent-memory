@@ -11,3 +11,5 @@ and 20 KB. When a group of entries grows, move it behind one hub entry that list
 ## Projects
 
 ## Tools and pitfalls
+
+## Dead ends (tried, failed: do not re-derive)

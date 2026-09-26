@@ -14,6 +14,9 @@ knowledge base that fills itself from what you read and watch.
   other, with sources checked on the web, from text, videos and PDFs.
 - **MemPalace as the vault index.** One summary card per note, so a note is found by the question
   you would ask, not by the words in its title.
+- **Memory where it is used.** Reading a file brings in what memory knows about it; every entry
+  says whether the user stated it, the work showed it, or the agent inferred it; approaches that
+  failed are kept as dead ends so nobody re-derives them.
 - **Hooks that hold the line.** Secrets never reach memory, broken wiki links block the end of a
   turn, a `git push` that did not land is reported, long heredocs and a PowerShell delete that would
   silently do nothing are stopped.
@@ -28,7 +31,7 @@ knowledge base that fills itself from what you read and watch.
 | `pdf` | any PDF to markdown, scans read by eye, then notes |
 | `vault-index` | fills the MemPalace index in batches of summary cards |
 | `mistake` | records a mistake the agent made and fixed, for the weekly review |
-| `memory-review` | weekly pass: repeats across sessions, stale facts, index health; empties the journal |
+| `memory-review` | weekly pass: a deterministic pre-sort of the journal by failure class, repeats across sessions, stale facts, dead ends; empties the journal |
 | `clean-memory` | tidy memory or the palace now, nothing deleted without a yes |
 | `browser` | scripted work with websites through a separate Chrome, the site's own API before the DOM |
 | `graphics` | template infographics (AntV, vendored) and charts from real data, offline |
@@ -41,7 +44,8 @@ knowledge base that fills itself from what you read and watch.
 | Hook | When | What |
 |---|---|---|
 | `session_start.py` | session start | prints the working rules; after a compaction, what was in progress |
-| `guard_memory_scope.py` | before Write/Edit | blocks secrets in memory, enforces the entry format, protects README/SCOPES |
+| `guard_memory_scope.py` | before Write/Edit | keeps `<private>` text out of memory and the vault, blocks secrets, requires `source` on entries, protects README/SCOPES |
+| `file_context.py` | before Read | when a file is read, surfaces the memory entries and journal lessons that name it (once per session) |
 | `guard_heredoc.py` | before Bash | blocks long heredocs, which break silently |
 | `guard_literalpath.py` | before PowerShell | rewrites a delete of a `[bracketed]` name to `-LiteralPath` |
 | `check_push_landed.py` | after Bash/PowerShell | compares HEAD with the remote after `git push` |
@@ -92,4 +96,6 @@ on your CPU or GPU. The video skill sends audio to Groq only if you add a Groq k
 ## License
 
 Apache-2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE). Third-party parts keep their own licenses
-(MIT for Matt Pocock's skills and AntV Infographic), listed in NOTICE.
+(MIT for Matt Pocock's skills and AntV Infographic), listed in NOTICE. Ideas taken without code:
+file context on Read and `<private>` tags from [claude-mem](https://github.com/thedotmack/claude-mem),
+outcome-based journal reflection and provenance tags from [graphify](https://github.com/Graphify-Labs/graphify).

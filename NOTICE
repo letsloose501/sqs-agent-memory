@@ -44,6 +44,9 @@ Ideas without code: pagination follows the ideas of maxun (https://github.com/ge
 AGPL-3.0; no code was taken); racing a click against a native dialog follows playwright-core's
 _raceAgainstModalStates (https://github.com/microsoft/playwright, Apache-2.0); video frame
 budgets follow bradautomates/claude-video; the chart reading paces follow lieflat-charts.
+Memory features follow ideas of claude-mem (https://github.com/thedotmack/claude-mem, Apache-2.0:
+file context on Read, <private> tags) and graphify (https://github.com/Graphify-Labs/graphify,
+Apache-2.0: reflect over outcomes, EXTRACTED/INFERRED provenance); no code was taken.
 
 MemPalace (https://github.com/MemPalace/mempalace) is a separate tool installed by the user
 with `uv tool install mempalace`; it is not redistributed here.
