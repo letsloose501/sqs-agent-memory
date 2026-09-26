@@ -77,8 +77,10 @@ def main() -> int:
         return 0
     target = Path(raw)
     try:
-        if target.resolve().is_relative_to(mem.resolve()):
-            return 0  # reading memory itself: nothing to add
+        # Reading a memory entry itself adds nothing. Only entries: scripts and other tools kept
+        # in the memory repository (hook scripts are, behind a junction) still get their notes.
+        if target.suffix.lower() == ".md" and target.resolve().is_relative_to(mem.resolve()):
+            return 0
     except (OSError, ValueError):
         pass
     keys = needles(target)

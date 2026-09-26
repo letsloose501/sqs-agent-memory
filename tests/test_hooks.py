@@ -133,6 +133,11 @@ def main() -> int:
     expect("file-context: nothing known, nothing said", not r.stdout.strip())
     r = hook("file_context.py", read(mem / "tool-pitfall.md"), env)
     expect("file-context: reading memory itself adds nothing", not r.stdout.strip())
+    (mem / "scripts").mkdir(exist_ok=True)
+    (mem / "scripts" / "frobnicate.py").write_text("print(1)\n", encoding="utf-8")
+    r = hook("file_context.py", read(mem / "scripts" / "frobnicate.py", "s3"), env)
+    expect("file-context: a script kept inside the memory repo still gets its notes",
+           "tool-pitfall.md" in ctx(r), r.stdout[:120])
 
     # -- journal_reflect
     (mem / "mistakes" / "2026-01-03-a.md").write_text(
