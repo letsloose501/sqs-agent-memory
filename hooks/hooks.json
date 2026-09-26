@@ -1,0 +1,110 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"],
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/guard_heredoc.py"],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/guard_literalpath.py"],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/guard_memory_scope.py"],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/check_push_landed.py"],
+            "timeout": 90
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/verify_vault.py", "--mark"],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/skills/skill-quality-suite/scripts/check_skills.py", "--mark"],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/verify_vault.py", "--stop"],
+            "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/skills/skill-quality-suite/scripts/check_skills.py", "--stop"],
+            "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "uv",
+            "args": ["run", "--no-project", "--quiet", "${CLAUDE_PLUGIN_ROOT}/scripts/memory_autocommit.py"],
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

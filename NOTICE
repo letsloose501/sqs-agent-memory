@@ -1,0 +1,49 @@
+agent-memory
+https://github.com/letsloose501/sqs-agent-memory
+
+Copyright 2026 letsloose501 (https://github.com/letsloose501)
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE), except for the
+third-party parts listed below, which keep their own licenses.
+
+-------------------------------------------------------------------------------------------
+Included work by the same author
+-------------------------------------------------------------------------------------------
+
+SQS - Skill Quality Suite (skills/skill-quality-suite)
+https://github.com/letsloose501/sqs-skills
+Copyright 2026 letsloose501. Apache License 2.0.
+
+Attribution. Section 4(d) of the License requires every redistribution of this work,
+and every derivative work that includes it, to carry a readable copy of this NOTICE
+file: in a NOTICE file distributed with it, in its source or documentation, or in a
+display it generates where third-party notices normally appear. Keep this file with any
+copy, fork or port of SQS, and name the project and its author, with the link above,
+wherever your documentation says where the code came from.
+
+-------------------------------------------------------------------------------------------
+Third-party work
+-------------------------------------------------------------------------------------------
+
+Matt Pocock's skills (skills/grilling, grill-me, to-spec, to-tickets, implement, tdd,
+codebase-design), adapted: to-spec and to-tickets default to local markdown tickets, the
+grilling description was rewritten, skill calls use the plugin namespace.
+https://github.com/mattpocock/skills
+Copyright (c) 2026 Matt Pocock. MIT License: licenses/mattpocock-skills-MIT.txt
+
+AntV Infographic (skills/graphics/vendor/antv-infographic/infographic.min.js)
+https://github.com/antvis/Infographic
+Copyright (c) 2025 AntV. MIT License: skills/graphics/vendor/antv-infographic/LICENSE
+
+The browser skill's page snapshot is ported from jev-ultrafast (snapshot.js)
+https://github.com/browser-use/jev-ultrafast, MIT License. The skill drives
+browser-harness (https://github.com/browser-use/browser-harness, MIT), which is installed
+separately and not redistributed here.
+
+Ideas without code: pagination follows the ideas of maxun (https://github.com/getmaxun/maxun,
+AGPL-3.0; no code was taken); racing a click against a native dialog follows playwright-core's
+_raceAgainstModalStates (https://github.com/microsoft/playwright, Apache-2.0); video frame
+budgets follow bradautomates/claude-video; the chart reading paces follow lieflat-charts.
+
+MemPalace (https://github.com/MemPalace/mempalace) is a separate tool installed by the user
+with `uv tool install mempalace`; it is not redistributed here.

@@ -1,0 +1,59 @@
+<!doctype html><meta charset="utf-8"><title>Список</title>
+<!-- Pagination fixture for selftest. ?mode=pages|more|feed|loop, &page=N for pages.
+     Traps reproduced from real sites on 24.09.2026:
+     - item ids live in the query (offer?id=N), like funpay: a path key glues them into one card;
+     - a widget with item links and its own "Показать ещё" BEFORE the list, like vc's news block;
+     - item links in a sidebar AFTER the pager, like habr's "Читают сейчас";
+     - page 2 repeats two items of page 1, like hh re-ranking between requests. -->
+<header><a href="?mode=pages&page=2">Далее</a> меню сайта</header>
+<div class="news-widget">
+  <a href="offer?id=9001">Новость в виджете номер один</a>
+  <a href="offer?id=9002">Новость в виджете номер два</a>
+  <button id="wmore">Показать ещё</button>
+</div>
+<ul id="list"></ul>
+<div id="after"></div>
+<aside><h3>Читают сейчас</h3>
+  <a href="offer?id=8001">Популярное один</a> <a href="offer?id=8002">Популярное два</a> <a href="offer?id=8003">Популярное три</a>
+</aside>
+<div style="height:1500px"></div>
+<script>
+  const q = new URLSearchParams(location.search), mode = q.get('mode'), page = +(q.get('page') || 1);
+  const list = document.getElementById('list'), after = document.getElementById('after');
+  const add = (from, n) => { for (let i = from; i < from + n; i++) {
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="offer?id=${i}">Товар номер ${i}</a> <span>${i * 10} ₽</span>`;
+    list.appendChild(li);
+  } };
+  document.getElementById('wmore').onclick = () => {  // must never be pressed by paginate
+    const a = document.createElement('a'); a.href = 'offer?id=9003'; a.textContent = 'Лишняя новость из виджета';
+    document.querySelector('.news-widget').prepend(a);
+  };
+  if (mode === 'pages') {
+    add(page === 2 ? 9 : (page - 1) * 10 + 1, 10);  // page 2 starts at 9: items 9 and 10 repeat
+    const nums = [1, 2, 3].map(p => p === page ? `<a aria-current="true" href="?mode=pages&page=${p}">${p}</a>`
+                                               : `<a href="?mode=pages&page=${p}">${p}</a>`).join(' ');
+    after.innerHTML = `<nav class="pagination">${nums}</nav>`;
+  } else if (mode === 'loop') {
+    add(1, 10);
+    after.innerHTML = `<a href="?mode=loop">Следующая</a>`;
+  } else if (mode === 'more') {
+    add(1, 10);
+    let clicks = 0;
+    after.innerHTML = '<button id="more">Показать ещё</button>';
+    document.getElementById('more').onclick = e => {
+      e.target.disabled = true;  // disabled while the batch loads, like real load-more buttons
+      setTimeout(() => { add(11 + clicks * 10, 10); clicks++; e.target.disabled = false;
+        if (clicks === 2) e.target.remove(); }, 300);
+    };
+  } else if (mode === 'feed') {
+    add(1, 10);
+    let loads = 0, busy = false;
+    addEventListener('scroll', () => {
+      const end = list.lastElementChild.getBoundingClientRect().bottom;
+      if (busy || loads >= 2 || end > innerHeight + 200) return;
+      busy = true;
+      setTimeout(() => { add(11 + loads * 10, 10); loads++; busy = false; }, 400);
+    });
+  }
+</script>

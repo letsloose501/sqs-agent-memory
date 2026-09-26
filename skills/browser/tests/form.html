@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><title>Форма</title>
+<label>Имя <input id="n" name="name"></label>
+<label>Город <select id="c"><option value="">—</option><option value="msk">Москва</option><option value="spb">Санкт-Петербург</option></select></label>
+<label><input type="checkbox" id="agree"> Согласен</label>
+<div contenteditable="true" aria-label="Заметка" style="border:1px solid #999;min-height:20px"></div>
+<input id="masked" aria-label="Телефон" maxlength="5">
+<div id="sugg" style="cursor:pointer">Подсказка без роли</div>
+<div id="log"></div>
+<a href="?page=2">Следующая страница</a>
+<button onclick="document.getElementById('log').textContent='sent:'+[n.value,c.value,agree.checked].join('|')">Готово</button>
+<button aria-label="Запретить использование cookie">Отклонить все</button>
+<a href="?v=1">1:23</a> <a href="?v=1">Длинный заголовок видео про агента</a>
+<button id="load" onclick="fetch('data.json?page=1').then(r=>r.json()).then(d=>log.textContent='loaded:'+d.items.length)">Загрузить</button>
+<template id="state">{"search": {"results": [{"id": 1, "title": "Статья 1", "views": 10}, {"id": 2, "title": "Статья 2", "views": 20}, {"id": 3, "title": "Статья 3", "views": 30}, {"id": 4, "title": "Статья 4", "views": 40}, {"id": 5, "title": "Статья 5", "views": 50}, {"id": 6, "title": "Статья 6", "views": 60}, {"id": 7, "title": "Статья 7", "views": 70}, {"id": 8, "title": "Статья 8", "views": 80}, {"id": 9, "title": "Статья 9", "views": 90}, {"id": 10, "title": "Статья 10", "views": 100}, {"id": 11, "title": "Статья 11", "views": 110}, {"id": 12, "title": "Статья 12", "views": 120}, {"id": 13, "title": "Статья 13", "views": 130}, {"id": 14, "title": "Статья 14", "views": 140}, {"id": 15, "title": "Статья 15", "views": 150}, {"id": 16, "title": "Статья 16", "views": 160}, {"id": 17, "title": "Статья 17", "views": 170}, {"id": 18, "title": "Статья 18", "views": 180}, {"id": 19, "title": "Статья 19", "views": 190}, {"id": 20, "title": "Статья 20", "views": 200}, {"id": 21, "title": "Статья 21", "views": 210}, {"id": 22, "title": "Статья 22", "views": 220}, {"id": 23, "title": "Статья 23", "views": 230}, {"id": 24, "title": "Статья 24", "views": 240}, {"id": 25, "title": "Статья 25", "views": 250}, {"id": 26, "title": "Статья 26", "views": 260}, {"id": 27, "title": "Статья 27", "views": 270}, {"id": 28, "title": "Статья 28", "views": 280}, {"id": 29, "title": "Статья 29", "views": 290}, {"id": 30, "title": "Статья 30", "views": 300}]}, "pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}</template>
+<div id="cap" class="g-recaptcha" style="display:none;width:300px;height:78px;border:1px solid #999">fake CAPTCHA widget: detection test, never solved</div>
+<div id="hid" role="dialog" style="display:none">скрытый диалог, как у YouTube</div>
+<div id="ov" style="position:fixed;inset:0;background:rgba(0,0,0,.3);display:none" onclick="this.style.display='none'"></div>
+<div style="height:3000px"></div>
+<button>Далеко внизу</button>
+<!-- act() change report and native dialogs; below the fold so the viewport count stays 12 -->
+<button id="noop">Пустая кнопка</button>
+<button id="exp" aria-expanded="false" onclick="this.setAttribute('aria-expanded', more.hidden); more.hidden = !more.hidden">…ещё</button>
+<div id="more" hidden>Развёрнутое описание: длинный текст, который появляется только после клика по кнопке раскрытия.</div>
+<button id="slow" onclick="setTimeout(() => log2.textContent = 'ответ пришёл через 700 мс', 700)">Медленная</button>
+<div id="log2"></div>
+<button id="del" onclick="log2.textContent = 'confirm:' + confirm('Удалить запись?')">Удалить</button>
+<button id="late" onclick="setTimeout(() => alert('поздний алерт'), 600)">Поздний алерт</button>
+<!-- CAPTCHA of a vendor not on the list (kuper: ServicePipe) and a reCAPTCHA v3 badge that blocks nothing -->
+<div id="spcap" class="captcha-root" style="display:none;height:200px;width:300px;border:1px solid #999">unknown vendor challenge</div>
+<div class="grecaptcha-badge" style="height:60px;width:256px"><div class="grecaptcha-logo" style="height:60px"></div></div>
+<div class="grid">
+  <div class="card"><a href="item/1?src=img"><span style="display:inline-block;width:40px;height:20px;background:#ccc"></span></a>
+    <a href="item/1?src=title">Наушники Альфа</a><span>1 151 ₽</span><a href="item/1?buy=1">Купить</a></div>
+  <div class="card"><a href="item/2?src=img"><span style="display:inline-block;width:40px;height:20px;background:#ccc"></span></a>
+    <a href="item/2?src=title">Наушники Бета</a><span>553 ₽</span><a href="item/2?buy=1">Купить</a></div>
+</div>
+<script>
+  document.getElementById('sugg').onclick = () => document.getElementById('log').textContent = 'sugg-clicked';
+  let changes = 0; document.getElementById('c').onchange = () => changes++; window.changes = () => changes;
+</script>

@@ -1,0 +1,17 @@
+{
+  "name": "agent-memory",
+  "owner": {
+    "name": "letsloose501",
+    "url": "https://github.com/letsloose501"
+  },
+  "metadata": {
+    "description": "Agent memory in git, an Obsidian vault indexed by MemPalace, and the skills that fill them."
+  },
+  "plugins": [
+    {
+      "name": "agent-memory",
+      "source": "./",
+      "description": "Agent memory in git, an Obsidian vault indexed by MemPalace, and the skills that fill them."
+    }
+  ]
+}

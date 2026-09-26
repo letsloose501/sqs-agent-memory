@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "agent-memory",
+  "displayName": "Agent Memory",
+  "version": "0.1.0",
+  "description": "Persistent agent memory in a git repository, an Obsidian knowledge vault indexed by MemPalace, and the skills that fill them: notes, video and PDF extraction, browser automation, skill quality checks, diagrams, LaTeX, safe commits.",
+  "author": {
+    "name": "letsloose501",
+    "url": "https://github.com/letsloose501"
+  },
+  "homepage": "https://github.com/letsloose501/sqs-agent-memory",
+  "repository": "https://github.com/letsloose501/sqs-agent-memory",
+  "license": "Apache-2.0",
+  "keywords": ["memory", "obsidian", "mempalace", "knowledge-base", "notes", "skills", "hooks"],
+  "userConfig": {
+    "memory_dir": {
+      "type": "directory",
+      "title": "Agent memory folder",
+      "description": "A git repository of markdown files the agent remembers across sessions and projects. /agent-memory:setup creates it if it does not exist. Example: ~/agent-memory",
+      "required": true
+    },
+    "vault_dir": {
+      "type": "directory",
+      "title": "Obsidian vault folder",
+      "description": "The Obsidian vault where knowledge notes go. /agent-memory:setup can create a starter vault here.",
+      "required": true
+    },
+    "notes_language": {
+      "type": "string",
+      "title": "Language of your notes",
+      "description": "Language the note-writing skills write in. Skill instructions stay in English.",
+      "default": "English"
+    },
+    "memory_autopush": {
+      "type": "boolean",
+      "title": "Push memory to its remote",
+      "description": "After each turn, commit memory changes and push them to the memory repository's private remote, if one is set.",
+      "default": true
+    }
+  }
+}
