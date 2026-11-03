@@ -90,6 +90,18 @@ def recall_hint(mem: Path) -> str:
             "and before writing a new entry, so an existing one is updated instead of duplicated.")
 
 
+def autocommit_failure() -> str:
+    """The last memory commit or push that failed, until a later run succeeds (memory_autocommit.py)."""
+    mark = plugin_data() / "memory-autocommit-failed.txt"
+    try:
+        text = mark.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+    return ("WARNING, tell the user in your first reply: the memory autocommit failed, so recent memory "
+            f"edits may not be in git or on the remote. Last failure: {text}. Most often git user.name / "
+            "user.email are not set, or the remote rejected the push; /agent-memory:setup checks both.")
+
+
 def block(title: str, lines: list[str]) -> list[str]:
     return [f"{title}:"] + [f"  {ln}" for ln in lines] if lines else []
 
@@ -108,6 +120,10 @@ def main() -> int:
         print()
     print(recall_hint(mem))
     print()
+    warning = autocommit_failure()
+    if warning:
+        print(warning)
+        print()
 
     if payload.get("source") != "compact":
         return 0

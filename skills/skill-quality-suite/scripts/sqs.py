@@ -550,9 +550,10 @@ def cmd_cases(skills, cfg, since, apply_it, fmt="text"):
     """`sqs.py cases <skill> --generate` - the case set the skill's own sources ask for.
 
     Every expensive layer here needs a case set and none of them helps you write one.
-    This writes the first draft out of the three sources that can be read without an
-    agent: the expectations you wrote beside the skill, the outcomes its description
-    commits to, and - with `--since` - the capabilities it gained since then.
+    This writes the first draft out of the sources that can be read without an agent:
+    the expectations you wrote beside the skill, the outcomes its description commits
+    to, the numbered steps its body prescribes, and - with `--since` - the capabilities
+    it gained since then.
 
     It is a draft on purpose. Every case carries `needs_review`, an assertion appears
     only where the source named something checkable, and the rest is `TODO`: a case
@@ -584,12 +585,12 @@ def cmd_cases(skills, cfg, since, apply_it, fmt="text"):
         for c in payload["evals"]:
             by_source.setdefault(c["source"], []).append(c)
         print(f"\n{s.folder}: {len(payload['evals'])} case(s) drafted")
-        for source in ("expectation", "promise", "improvement"):
+        for source in ("expectation", "promise", "improvement", "procedure"):
             for c in by_source.get(source, []):
                 print(f"  {source:<12} {c['id']:<22} {c['prompt'][:56]}")
         if not payload["evals"]:
-            print(f"  nothing to draft - no {caseset.EXPECTATIONS}, and the description "
-                  f"commits to no outcome a pattern can see")
+            print(f"  nothing to draft - no {caseset.EXPECTATIONS}, the description "
+                  f"commits to no outcome a pattern can see, and the body numbers no steps")
             continue
         target = os.path.join(s.root, caseset.CASES_FILE.replace("/", os.sep))
         if not apply_it:
@@ -951,9 +952,15 @@ PAID_OFFER = ("Not run, and not run without your say-so: `eval --trigger` measur
               "actually loads, at about $0.21 per run (measured 23.09.2026) and sixty runs "
               "for a proper set. It pays off only over time - repeated across edits, "
               "against the last saved run - not as one number today.")
+JUDGE_OFFER = ("Whether it was followed to the end - the step skipped in silence, the check "
+               "left out before \"done\" - no count here can see: `improve <skill> "
+               "--transcripts DIR` writes its latest loads for free, and reading them "
+               "against references/judging-sessions.md is a model's work, paid from your "
+               "usage window in proportion to the characters written.")
 
 
-def cmd_improve(skills, results, history_dir, fmt="text", journal_dir=None):
+def cmd_improve(skills, results, history_dir, fmt="text", journal_dir=None,
+                transcripts_dir=None, max_loads=12):
     """`sqs.py improve <skill>` - what to change, from the skill and from your requests.
 
     Two sources, and only what each can say reliably. The skill itself: every finding,
@@ -996,7 +1003,14 @@ def cmd_improve(skills, results, history_dir, fmt="text", journal_dir=None):
                             "has_trigger_set": os.path.exists(
                                 os.path.join(s.root, "evals", "eval_queries.json"))
                             or os.path.isdir(os.path.join(s.root, "evals", "trigger")),
-                            "paid_offer": PAID_OFFER}
+                            "paid_offer": PAID_OFFER, "judge_offer": JUDGE_OFFER}
+        if transcripts_dir:
+            from evaluation import transcripts  # noqa: PLC0415
+            got = transcripts.collect(s, history_dir, max_loads)
+            report[s.folder]["transcripts"] = dict(
+                transcripts.write(got, transcripts_dir), found=got["found"],
+                written=len(got["loads"]), skipped_building=got["skipped_building"],
+                versions={v["label"]: v["same_as_current"] for v in got["versions"].values()})
     if fmt == "json":
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
@@ -1029,7 +1043,26 @@ def cmd_improve(skills, results, history_dir, fmt="text", journal_dir=None):
         _print_work(r["work"])
         _print_journal(r["journal"])
         print(f"  5. Paid, only if you want it. {r['paid_offer']}")
+        print(f"     {r['judge_offer']}")
+        if "transcripts" in r:
+            _print_transcripts(r["transcripts"])
     return 0
+
+
+def _print_transcripts(t):
+    """Section 6 of `improve`: the loads written for a judge, and what reading them costs."""
+    print(f"  6. For a judge - {t['written']} of {t['found']} load(s) written to {t['dir']}"
+          + (f", {t['skipped_building']} left out from sessions that edited the skill"
+             if t["skipped_building"] else ""))
+    if not t["written"]:
+        return
+    stale = [k for k, same in t["versions"].items() if not same]
+    print(f"     {t['chars']} characters to read; secrets masked. Judge only on a yes, by "
+          f"references/judging-sessions.md")
+    if stale:
+        print(f"     {', '.join(stale)} loaded a text that is not the current SKILL.md: a "
+              f"failure there may already be fixed - check it against the file before "
+              f"proposing anything")
 
 
 def _print_unloaded(u):
@@ -1294,6 +1327,12 @@ def main(argv=None):
                                            "(default: `mistakes` in sqs.config.json)")
     ap.add_argument("--history-dir", help="cases --from-history: where the transcripts are "
                                           "(default ~/.claude/projects)")
+    ap.add_argument("--transcripts", metavar="DIR",
+                    help="improve: also write the skill's latest loads to DIR, masked, for a "
+                         "model to judge against references/judging-sessions.md. Writing is "
+                         "free; the judging is paid, and never starts from here")
+    ap.add_argument("--max-loads", type=int, default=12,
+                    help="improve --transcripts: how many of the latest loads (default 12)")
     a = ap.parse_args(argv)
 
     if a.command == "explain":
@@ -1469,7 +1508,7 @@ def main(argv=None):
                for s in skills]
     if a.command == "improve":
         return cmd_improve(skills, results, a.history_dir, a.format,
-                           journal_dir(cfg, a.mistakes_dir))
+                           journal_dir(cfg, a.mistakes_dir), a.transcripts, a.max_loads)
 
     # A duplicate `name` is only visible from above: one skill shadows the other and
     # which one wins is not knowable in advance.

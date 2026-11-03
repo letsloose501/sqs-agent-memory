@@ -41,8 +41,10 @@ Three things an agent lacks out of the box, in one plugin:
 
 **For you**
 
-- **A memory you can audit.** Plain Markdown in your own private git repository. Every change is
-  a commit: read it, diff it, revert it. Nothing lives in a database you cannot open.
+- **A memory you can audit, committed for you.** Plain Markdown in your own private git repository.
+  Nothing to set up: at the end of every turn a hook commits what changed and pushes it to your
+  private remote (pushing can be turned off in the plugin options). If a commit or push fails, you
+  are told at once and again at the next session start, instead of finding out from an empty history.
 - **You stop repeating yourself.** A correction you give once becomes an entry, then a rule if it
   repeats, then a hook if the rule did not hold. The monthly review tells you whether that is
   working: the share of new mistakes that resemble an old one.
@@ -55,6 +57,28 @@ Three things an agent lacks out of the box, in one plugin:
 - **Everything you read or watch becomes a linked note.** Videos, PDFs (scans included), articles
   and raw notes turn into Obsidian notes with checked sources, found later by the question you
   would ask.
+- **A vault you can learn from, not only store in.** See [Learning from your notes](#learning-from-your-notes).
+
+## Learning from your notes
+
+The vault is written to be studied, not only searched:
+
+- **Notes go from simple to complex.** The base idea in plain words first, then the techniques, then
+  the reference detail, with an example next to each abstraction and links to the notes a topic
+  depends on. You can read a note top to bottom without knowing the subject.
+- **A dictionary** of terms, each linked to the notes that use it, so a word you meet in one note
+  leads to the topic it comes from.
+- **A study plan on request.** "How do I learn X" turns the notes and cards you already have on a
+  topic into a route from reading to mastery, and names the gaps as "take notes on this first"
+  instead of pretending the material is complete.
+- **Spaced-repetition cards**, reviewed inside Obsidian with the community plugin
+  [Spaced Repetition](https://github.com/st3v3nmw/obsidian-spaced-repetition) (grading Easy / Good /
+  Hard, a schedule per card). Cards are made when you ask for them or when a topic turns out to be
+  slipping, not for every note: a deck nobody reviews is noise.
+
+Ask in plain words: "take notes on this", "make cards from note X", "add this term to the
+dictionary", "make a study plan for X". The `notes` skill does the writing; Obsidian is where you
+read and review.
 
 ## Why the memory is different
 
@@ -228,7 +252,7 @@ The code chain is adapted from [Matt Pocock's skills](https://github.com/mattpoc
 | `check_push_landed.py` | after Bash/PowerShell | compares HEAD with the remote after `git push` |
 | `verify_vault.py` | after edits / at stop | blocks the end of a turn on new broken wiki links |
 | `check_skills.py` (SQS) | after edits / at stop | checks the structure of skills you edit in `~/.claude/skills` |
-| `memory_autocommit.py` | at stop | commits memory changes and pushes to the private remote |
+| `memory_autocommit.py` | at stop | commits memory changes and pushes to the private remote, retries a push that failed earlier; a failure is shown to you and repeated at the next session start until it is fixed |
 
 | Script | What |
 |---|---|
@@ -277,9 +301,15 @@ this: ..." with a paragraph creates a note and an index card; `setup.py check` s
 **To run the weekly review on its own**, ask Claude to schedule it, for example "run
 /agent-memory:memory-review every Sunday at 20:00".
 
-Optional: ffmpeg and a free Groq key for videos without captions, `browser-harness` for the
-browser skill, a TeX distribution for LaTeX, Anthropic's `document-skills` for Office files. Each is
-in [docs/install.md](docs/install.md#optional-extras). Windows, macOS and Linux; the PowerShell guard
+Optional: the Obsidian plugin Spaced Repetition to review cards, ffmpeg and a free Groq key for
+videos without captions, `browser-harness` for the browser skill, a TeX distribution for LaTeX,
+Anthropic's `document-skills` for Office files. Each is in
+[docs/install.md](docs/install.md#optional-extras).
+
+Tested with MemPalace 3.11.0 (index cards written and found, the doctor and setup on a palace in
+MemPalace's new config folder). An older install in `~/.mempalace` keeps working; new ones live in
+`~/.config/mempalace`, and the plugin looks wherever MemPalace does. To upgrade MemPalace, close
+Claude Code first and see [docs/install.md](docs/install.md#4-mempalace). Windows, macOS and Linux; the PowerShell guard
 only acts on Windows.
 
 ## Limits

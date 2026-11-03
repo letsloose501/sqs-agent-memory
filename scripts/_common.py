@@ -40,6 +40,35 @@ def vault_dir() -> Path | None:
     return _dir("vault_dir")
 
 
+def mempalace_config_dir() -> Path:
+    """Where MemPalace keeps config.json, resolved the way MemPalace 3.10+ resolves it.
+
+    New installs since 3.10 go to ~/.config/mempalace (or $XDG_CONFIG_HOME/mempalace); an
+    existing ~/.mempalace keeps working, but only if it is a real install (a config.json,
+    people_map.json or palace/chroma.sqlite3 in it), not an empty folder. Copied from
+    `mempalace.config._default_config_dir` in 3.11.0; a hardcoded ~/.mempalace wrote the
+    config where a fresh 3.11 never reads it.
+    """
+    env_dir = os.environ.get("MEMPALACE_CONFIG_DIR", "").strip()
+    if env_dir:
+        return Path(env_dir).expanduser()
+    legacy = Path.home() / ".mempalace"
+    if legacy.is_dir() and (any((legacy / m).is_file() for m in ("config.json", "people_map.json"))
+                            or (legacy / "palace" / "chroma.sqlite3").is_file()):
+        return legacy
+    xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    if xdg and Path(xdg).expanduser().is_absolute():
+        return Path(xdg).expanduser() / "mempalace"
+    return Path.home() / ".config" / "mempalace"
+
+
+def mempalace_palace(cfg: dict) -> Path:
+    """The palace folder: the environment, then config.json, then `palace` next to the config."""
+    raw = (os.environ.get("MEMPALACE_PALACE_PATH") or os.environ.get("MEMPALACE_PALACE")
+           or os.environ.get("MEMPAL_PALACE_PATH") or cfg.get("palace_path"))
+    return Path(os.path.expanduser(raw)) if raw else mempalace_config_dir() / "palace"
+
+
 def plugin_data() -> Path:
     """Per-plugin state that survives plugin updates (markers, baselines)."""
     raw = os.environ.get("CLAUDE_PLUGIN_DATA")

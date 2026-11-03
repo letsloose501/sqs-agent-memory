@@ -45,7 +45,7 @@ It is under git, so cleaning is safe: everything is recoverable through `git log
 **Mass deletion breaks the index.** Remove a sizeable share of drawers and the vector index
 (HNSW) drifts from sqlite; vector search switches itself off ("vector search disabled"). The
 fix is `mempalace repair --mode from-sqlite --archive-existing --yes`, a long rebuild that
-leaves a copy of the palace on disk (`~/.mempalace/palace.*`); remove old copies, keeping the
+leaves a copy of the palace on disk (`palace.*` next to the palace folder: `~/.mempalace/` for installs older than MemPalace 3.10, `~/.config/mempalace/` for newer ones); remove old copies, keeping the
 newest as a rollback point. Diagnose first with
 `python "${CLAUDE_PLUGIN_ROOT}/skills/notes/scripts/mempalace_doctor.py"`.
 

@@ -20,6 +20,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from _common import mempalace_config_dir, mempalace_palace
+
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATES = ROOT / "templates"
 
@@ -93,10 +95,10 @@ def cmd_check(_: argparse.Namespace) -> int:
     except (OSError, ValueError):
         amd = None
     say("ok" if amd else "no", f"autoMemoryDirectory = {amd or '(not set)'}")
-    cfg = Path.home() / ".mempalace" / "config.json"
+    cfg = mempalace_config_dir() / "config.json"
     try:
         mp = json.loads(cfg.read_text(encoding="utf-8"))
-        say("ok", f"MemPalace config: embedding_model={mp.get('embedding_model', 'minilm (default)')}, "
+        say("ok", f"MemPalace config ({cfg}): embedding_model={mp.get('embedding_model', 'minilm (default)')}, "
                   f"auto_save={mp.get('hooks', {}).get('auto_save', 'true (default)')}")
     except (OSError, ValueError):
         say("no", "MemPalace config: none yet (setup.py mempalace)")
@@ -174,7 +176,7 @@ def cmd_settings(a: argparse.Namespace) -> int:
 
 
 def cmd_mempalace(a: argparse.Namespace) -> int:
-    cfg_path = Path.home() / ".mempalace" / "config.json"
+    cfg_path = mempalace_config_dir() / "config.json"
     cfg = {}
     if cfg_path.exists():
         try:
@@ -188,7 +190,7 @@ def cmd_mempalace(a: argparse.Namespace) -> int:
         hooks["auto_save"] = False
         say("set", "hooks.auto_save = false (the palace is the vault index, not a transcript dump)")
     if a.model and cfg.get("embedding_model") != a.model:
-        if cfg.get("embedding_model") and (Path(cfg.get("palace_path", "~/.mempalace/palace")).expanduser() / "chroma.sqlite3").exists():
+        if cfg.get("embedding_model") and (mempalace_palace(cfg) / "chroma.sqlite3").exists():
             say("WARNING", f"changing the embedder of an existing palace ({cfg['embedding_model']} -> {a.model}) "
                            "needs `mempalace repair rebuild-index`")
         cfg["embedding_model"] = a.model

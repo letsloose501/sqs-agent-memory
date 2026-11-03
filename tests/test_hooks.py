@@ -305,6 +305,36 @@ def main() -> int:
     r = hook("session_start.py", {"source": "startup"}, {k: v for k, v in env.items() if "MEMORY_DIR" not in k})
     expect("session: unconfigured plugin points at setup", r.returncode == 0 and "setup" in r.stdout)
 
+    # -- MemPalace config folder, resolved as MemPalace 3.10+ does; the doctor's copy must agree
+    fake = tmp / "home"
+    fake.mkdir()
+    probe = ("import sys, importlib.util; sys.path.insert(0, sys.argv[1]); import _common; "
+             "s = importlib.util.spec_from_file_location('d', sys.argv[2]); d = importlib.util.module_from_spec(s); "
+             "s.loader.exec_module(d); print(_common.mempalace_config_dir(), d.config_dir(), sep='|')")
+    doctor = ROOT / "skills" / "notes" / "scripts" / "mempalace_doctor.py"
+
+    def mp_dir(extra: dict) -> list[str]:
+        e = {k: v for k, v in os.environ.items() if k not in ("MEMPALACE_CONFIG_DIR", "XDG_CONFIG_HOME")}
+        e.update(HOME=str(fake), USERPROFILE=str(fake), **extra)
+        out = subprocess.run([sys.executable, "-c", probe, str(SCRIPTS), str(doctor)], capture_output=True,
+                             text=True, encoding="utf-8", env=e).stdout.strip()
+        return out.split("|") if "|" in out else [out, "?"]
+
+    a, b = mp_dir({})
+    expect("mempalace: a fresh home uses ~/.config/mempalace", a == str(fake / ".config" / "mempalace"), a)
+    expect("mempalace: the doctor resolves the same folder", a == b, f"{a} vs {b}")
+    (fake / ".mempalace").mkdir()
+    a, _ = mp_dir({})
+    expect("mempalace: an empty ~/.mempalace is not an install", a == str(fake / ".config" / "mempalace"), a)
+    (fake / ".mempalace" / "config.json").write_text("{}", encoding="utf-8")
+    a, b = mp_dir({"XDG_CONFIG_HOME": str(tmp / "xdg")})
+    expect("mempalace: a real legacy install wins over XDG", a == str(fake / ".mempalace") and a == b, f"{a} {b}")
+    a, b = mp_dir({"MEMPALACE_CONFIG_DIR": str(tmp / "explicit")})
+    expect("mempalace: MEMPALACE_CONFIG_DIR wins over everything", a == str(tmp / "explicit") and a == b, f"{a} {b}")
+    (fake / ".mempalace" / "config.json").unlink()
+    a, _ = mp_dir({"XDG_CONFIG_HOME": str(tmp / "xdg")})
+    expect("mempalace: XDG_CONFIG_HOME used when there is no legacy install", a == str(tmp / "xdg" / "mempalace"), a)
+
     # -- memory_usage (a synthetic transcript: what counts as a use and what does not)
     um, proj = tmp / "usage", tmp / "projects"
     (proj / "work").mkdir(parents=True)
@@ -415,6 +445,34 @@ def main() -> int:
     expect("push: a push that did not land is reported", r.returncode == 2 and "did NOT land" in r.stderr, r.stderr[:120])
     r = hook("check_push_landed.py", {"tool_name": "Bash", "tool_input": {"command": "git status"}}, env)
     expect("push: other git commands ignored", r.returncode == 0)
+
+    # -- memory_autocommit: retries and failures the user gets to see
+    marker = data / "memory-autocommit-failed.txt"
+    hook("memory_autocommit.py", {}, env)
+    expect("autocommit: a commit left unpushed is pushed on a turn with no changes",
+           git(mem, "rev-parse", "HEAD").stdout == git(remote, "rev-parse", "main").stdout)
+    git(mem, "remote", "set-url", "origin", str(tmp / "gone.git"))
+    (mem / "p.md").write_text(entry, encoding="utf-8")
+    r = hook("memory_autocommit.py", {}, env)
+    msg = json.loads(r.stdout or "{}").get("systemMessage", "")
+    expect("autocommit: a failed push is shown to the user", r.returncode == 0 and "push failed" in msg, r.stdout[:160])
+    expect("autocommit: a failed push leaves a marker", marker.is_file())
+    r = hook("session_start.py", {"source": "startup"}, env)
+    expect("session: a failed autocommit is announced at the next start", "autocommit failed" in r.stdout, r.stdout[-300:])
+    git(mem, "remote", "set-url", "origin", str(remote))
+    no_id = tmp / "no-identity.gitconfig"
+    no_id.write_text("[user]\n\tuseConfigOnly = true\n", encoding="utf-8")
+    anon = {k: v for k, v in env.items() if not k.startswith("GIT_")}
+    anon.update(GIT_CONFIG_GLOBAL=str(no_id), GIT_CONFIG_NOSYSTEM="1")
+    (mem / "q.md").write_text(entry, encoding="utf-8")
+    r = hook("memory_autocommit.py", {}, anon)
+    msg = json.loads(r.stdout or "{}").get("systemMessage", "")
+    expect("autocommit: a commit without git identity is reported, not swallowed",
+           r.returncode == 0 and "NOT committed" in msg, (r.stdout + r.stderr)[:200])
+    hook("memory_autocommit.py", {}, env)
+    expect("autocommit: a successful run clears the marker", not marker.exists())
+    r = hook("session_start.py", {"source": "startup"}, env)
+    expect("session: no warning once memory is committed again", "autocommit failed" not in r.stdout)
 
     print(f"\n{'ALL GREEN' if not FAILED else f'{len(FAILED)} FAILED: ' + ', '.join(FAILED)}")
     return 1 if FAILED else 0

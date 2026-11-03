@@ -86,8 +86,17 @@ MemPalace has two models inside, and both are the user's choice:
 - **The embedder** (search). `minilm` is English-only; `embeddinggemma` is multilingual (100+
   languages, about 300 MB downloaded on first use); `openai-compat` uses a local server such as
   Ollama or LM Studio. Recommend `embeddinggemma` whenever the notes language is not English.
-  Switching later on a filled palace needs `mempalace repair rebuild-index`.
+  Switching later on a filled palace needs `mempalace repair rebuild-index`. Since 3.11 a palace
+  refuses to open with a different embedder than the one that built it, and the message names the
+  fix; a palace with no recorded embedder opens with a warning naming `mempalace palace set-embedder`
+  (`vault_index.py` records it on the first card). `embeddinggemma2` is a newer opt-in model; it
+  needs `uv tool install "mempalace[embeddinggemma2]"` and PyTorch, so do not suggest it by default.
 - **Entity languages**: the languages of the notes, for entity detection.
+
+Where the config lives: an install older than 3.10 keeps `~/.mempalace/config.json`; a new one
+uses `~/.config/mempalace/` (or `$XDG_CONFIG_HOME/mempalace/`). `setup.py` resolves it the way
+MemPalace does, so do not create `~/.mempalace` by hand: an existing folder there with a config
+in it takes precedence and splits the setup in two.
 
 Then `setup.py mempalace --model <model> --langs <codes>`. It also sets `hooks.auto_save: false`:
 here the palace is only the vault index. Session snapshots measured on one real palace were 96 % of

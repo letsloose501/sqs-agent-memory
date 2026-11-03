@@ -5,6 +5,29 @@ publishes a release with the section below as its notes.
 
 ## Unreleased
 
+- MemPalace 3.10+ config folder: new MemPalace installs keep config and palace in
+  `~/.config/mempalace` (or `$XDG_CONFIG_HOME/mempalace`), and the plugin hardcoded `~/.mempalace`,
+  so on a fresh install `setup.py` wrote a config MemPalace never read and the doctor looked at a
+  palace that was not there. `setup.py` and `mempalace_doctor.py` now resolve the folder the way
+  MemPalace 3.11.0 does (`MEMPALACE_CONFIG_DIR`, then a real legacy install, then XDG); the doctor
+  also reads the current palace variables (`MEMPALACE_PALACE_PATH`, `MEMPALACE_PALACE`), not the
+  old `MEMPALACE_PATH`. Checked live on 3.11.0: an index card written by `vault_index.py` and found
+  by search, the doctor and setup on a palace in a separate config folder. Docs: the embedder lock
+  added in 3.11, opt-in `embeddinggemma2`, and how to upgrade MemPalace on Windows.
+- Autocommit failures are no longer silent: a failed commit (most often no git identity) or push is
+  shown to the user as a message, and repeated at every session start until a run succeeds. A push
+  that failed earlier is retried on the next turn, even when that turn changed nothing; a fresh
+  repository without an upstream is pushed with `-u`.
+- Bundled SQS updated to commit c8b3652 of sqs-skills (after v2.2.0): smell rules QL016-QL019,
+  `eval --runtime process`, `improve --transcripts`. CI still runs the v2.2.0 action, the latest tag.
+- Matt Pocock's skills: upstream changes since 22.08.2026 ported over the plugin's adaptations
+  (sub-agents with a fresh context, GLOSSARY.md instead of CONTEXT.md, `implement` fetches a ticket
+  reference and calls skills through the Skill tool, `tdd` notes what each seam catches and misses,
+  `to-tickets` sub-issues, `grilling` words questions so "yes" accepts the recommendation).
+- CI: `astral-sh/setup-uv` v10.2.0 -> v10.3.3, pinned by commit.
+- README: "Learning from your notes" (simple-to-complex notes, dictionary, study plan, cards with the
+  Obsidian Spaced Repetition plugin, which install.md now lists); autocommit described as automatic.
+
 - Memory use: `scripts/memory_usage.py` counts, from session transcripts, the sessions that opened
   each entry (Read, `memory_recall.py read`, cat/sed/head/Get-Content, also through Claude Code's
   per-project memory folder). It lists entries opened often but missing from the index and index

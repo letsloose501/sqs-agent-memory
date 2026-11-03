@@ -80,6 +80,21 @@ Reopen the terminal, then check: `mempalace --version` and `mempalace-mcp --help
 `mempalace-mcp` as an MCP server, so it has to be on PATH. The search model (about 300 MB for the
 multilingual one) downloads the first time it is used.
 
+MemPalace 3.10 and newer keep a new install's config and palace in `~/.config/mempalace`; an older
+install in `~/.mempalace` keeps working where it is. The plugin looks in the same place MemPalace does.
+
+**Upgrading MemPalace later.** Close Claude Code first: on Windows the running `mempalace-mcp`
+server holds its own executable and the upgrade cannot replace it. Copy the palace folder as a
+backup (it is small: one real 2000-card palace is 23 MB), then:
+
+```bash
+uv tool upgrade mempalace
+```
+
+Run the `notes` skill's doctor afterwards (`mempalace_doctor.py`); it reports an index that needs a
+rebuild and fixes it with `--fix`. Since 3.11 a palace refuses to open with a different embedder than
+the one that built it; the message names the fix.
+
 ## 5. The plugin
 
 In Claude Code (terminal):
@@ -122,6 +137,7 @@ Restart Claude Code once more so the memory folder and the MemPalace server take
 | For | Install |
 |---|---|
 | Transcripts of videos without captions (video skill, tier 3) | ffmpeg (Windows `winget install --id Gyan.FFmpeg -e`, macOS `brew install ffmpeg`) and a free Groq key from https://console.groq.com/keys in the `GROQ_API_KEY` environment variable or in `~/.config/agent-memory/.env` as `GROQ_API_KEY=...` |
+| Reviewing spaced-repetition cards | the Obsidian community plugin **Spaced Repetition** (`obsidian-spaced-repetition`): Settings > Community plugins > Browse, search "Spaced Repetition", Install, Enable. Cards are plain Markdown and stay readable without it |
 | The browser skill | `browser-harness`, see `skills/browser/references/setup.md` |
 | Compiling LaTeX | a TeX distribution (MiKTeX or TeX Live) |
 | Word, PowerPoint, Excel files | Anthropic's `document-skills`: `claude plugin marketplace add anthropics/skills`, then `claude plugin install document-skills@anthropic-agent-skills`. Already built in if you use the Claude desktop or web app. Not bundled with this plugin: its license forbids redistribution |

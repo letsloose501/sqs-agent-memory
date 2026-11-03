@@ -63,16 +63,34 @@ def mempalace_cmd() -> list[str]:
     return [sys.executable, "-m", "mempalace"]
 
 
+def config_dir() -> Path:
+    """MemPalace's config folder, resolved as MemPalace 3.10+ does (`_default_config_dir` in 3.11.0):
+    an explicit MEMPALACE_CONFIG_DIR, then a real legacy ~/.mempalace, then XDG. New installs
+    live in ~/.config/mempalace; a hardcoded ~/.mempalace looks at a folder that is not there."""
+    env_dir = os.environ.get("MEMPALACE_CONFIG_DIR", "").strip()
+    if env_dir:
+        return Path(env_dir).expanduser()
+    legacy = Path.home() / ".mempalace"
+    if legacy.is_dir() and (any((legacy / m).is_file() for m in ("config.json", "people_map.json"))
+                            or (legacy / "palace" / "chroma.sqlite3").is_file()):
+        return legacy
+    xdg = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    if xdg and Path(xdg).expanduser().is_absolute():
+        return Path(xdg).expanduser() / "mempalace"
+    return Path.home() / ".config" / "mempalace"
+
+
 def config() -> dict:
     try:
-        return json.loads((Path.home() / ".mempalace" / "config.json").read_text(encoding="utf-8"))
+        return json.loads((config_dir() / "config.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
 
 
 def default_palace() -> Path:
-    raw = os.environ.get("MEMPALACE_PATH") or config().get("palace_path") or "~/.mempalace/palace"
-    return Path(os.path.expanduser(raw))
+    raw = (os.environ.get("MEMPALACE_PALACE_PATH") or os.environ.get("MEMPALACE_PALACE")
+           or os.environ.get("MEMPAL_PALACE_PATH") or config().get("palace_path"))
+    return Path(os.path.expanduser(raw)) if raw else config_dir() / "palace"
 
 
 def configured_model() -> str:
@@ -207,7 +225,7 @@ def diagnose(palace: Path) -> tuple[str, list[str]]:
             # 0 == 0 is formally "agreeing numbers" and therefore dangerous: a palace in the
             # middle of a rebuild and a wiped palace look exactly like this.
             lines.append(f"  {name:22} sqlite: {n:>6}   EMPTY: no data at all")
-            lines.append("     a rebuild in progress? look at ~/.mempalace/palace.pre-rebuild-* and wait for it")
+            lines.append("     a rebuild in progress? look at palace.pre-rebuild-* next to the palace and wait for it")
             verdict = "empty"
             continue
         if total is None:
@@ -281,7 +299,7 @@ def main() -> int:
         except (AttributeError, ValueError):
             pass
     ap = argparse.ArgumentParser(description="Diagnose and repair a MemPalace palace")
-    ap.add_argument("--palace", type=Path, default=default_palace(), help="palace path (default from ~/.mempalace/config.json)")
+    ap.add_argument("--palace", type=Path, default=default_palace(), help="palace path (default from MemPalace's config.json)")
     ap.add_argument("--fix", action="store_true", help="repair if the diagnosis calls for it")
     ap.add_argument("--archives", action="store_true", help="list pre-rebuild archives")
     args = ap.parse_args()

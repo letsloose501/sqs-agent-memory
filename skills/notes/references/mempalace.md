@@ -9,7 +9,7 @@ themselves live in Obsidian; MemPalace **indexes** them, it does not replace the
 > The source of truth is the vault files. MemPalace is a pointer to them. When they disagree, trust the file.
 
 In this setup the palace is **only the vault index**. Session snapshots are switched off
-(`hooks.auto_save: false` in `~/.mempalace/config.json`): measured on one real palace they took 96 %
+(`hooks.auto_save: false` in MemPalace's `config.json`: `~/.mempalace/` for installs older than 3.10, `~/.config/mempalace/` for newer): measured on one real palace they took 96 %
 of the volume and never answered a question. The mistakes journal lives in the memory repository.
 
 ## Structure: wing, room, drawer
@@ -99,7 +99,7 @@ By hand:
    The `from-sqlite` mode is required: the default mode goes through chromadb and fails the same way.
 3. **Record the embedder** if the doctor says so: `mempalace palace set-embedder --model <model>`.
 4. **Remove old snapshots.** Each rebuild with `--archive-existing` leaves a copy in
-   `~/.mempalace/palace.pre-rebuild-*`. They pile up silently. Once the new palace answers searches,
+   `palace.pre-rebuild-*` next to the palace folder. They pile up silently. Once the new palace answers searches,
    remove all but the newest; deleting is the user's decision.
 
 No data is lost: documents live in `chroma.sqlite3`, the HNSW index is derived from it.
