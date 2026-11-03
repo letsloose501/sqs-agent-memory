@@ -5,6 +5,21 @@ publishes a release with the section below as its notes.
 
 ## Unreleased
 
+- New skill `desktop`: native apps through the accessibility tree with
+  [agent-desktop](https://github.com/vercel-labs/agent-desktop) 1.1.0 (Apache-2.0, called as a CLI,
+  no code copied). `scripts/ad.py` prints a window as one line per control (Calculator: 10 KB of
+  JSON down to 1.7 KB), takes bare refs so PowerShell never eats an `@`, reports what each action
+  changed, and refuses `set-value`/`clear`/`type` into a field that already holds text unless
+  `--overwrite` is given: on Windows 11 `launch notepad` reopened the user's previous tabs, so a
+  "new" window held their file. Rules from a live run: the window's app name differs from the
+  launched one (`calc` -> `CalculatorApp.exe`, absent from `list-apps`), an element whose value is
+  its name goes stale after it changes, `close-app` cannot reach a window missing from `list-apps`,
+  headless by default. `tests/test_desktop.py` runs in CI on three systems without agent-desktop;
+  eight targeted mutations of `ad.py` each turn it red.
+- `setup.py check` found an npm-installed tool only by bare name, which Windows cannot start (npm
+  installs a `.cmd` shim), so it reported such a tool as missing; it now resolves through `PATH`
+  and `PATHEXT`, and lists `agent-desktop`. The router has a "desktop app" section.
+
 - MemPalace 3.10+ config folder: new MemPalace installs keep config and palace in
   `~/.config/mempalace` (or `$XDG_CONFIG_HOME/mempalace`), and the plugin hardcoded `~/.mempalace`,
   so on a fresh install `setup.py` wrote a config MemPalace never read and the doctor looked at a

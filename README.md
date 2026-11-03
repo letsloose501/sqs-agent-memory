@@ -212,6 +212,12 @@ apps they are already built in.
 |---|---|
 | `browser` | scripted work with sites through a separate Chrome profile, never your main browser: open, fill, click, walk result pages, extract; the site's own API or embedded JSON comes before parsing the page, and telemetry is off |
 
+**Work in desktop apps**
+
+| Skill | What it does, and what sets it apart |
+|---|---|
+| `desktop` | native windows through the accessibility tree with [agent-desktop](https://github.com/vercel-labs/agent-desktop): the window as a short table of controls, clicks and fills that never take your mouse or the foreground, a report of what each action changed, and a refusal to overwrite a field that already holds text (Windows 11 Notepad reopens your old tabs into a "new" window); the app's own CLI or API comes first |
+
 **Code: from an idea to shipped work**
 
 | Skill | What it does, and what sets it apart |
@@ -302,7 +308,7 @@ this: ..." with a paragraph creates a note and an index card; `setup.py check` s
 /agent-memory:memory-review every Sunday at 20:00".
 
 Optional: the Obsidian plugin Spaced Repetition to review cards, ffmpeg and a free Groq key for
-videos without captions, `browser-harness` for the browser skill, a TeX distribution for LaTeX,
+videos without captions, `browser-harness` for the browser skill, `agent-desktop` for the desktop skill, a TeX distribution for LaTeX,
 Anthropic's `document-skills` for Office files. Each is in
 [docs/install.md](docs/install.md#optional-extras).
 

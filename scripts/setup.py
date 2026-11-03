@@ -35,8 +35,12 @@ def run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
 
 
 def version(cmd: list[str]) -> str | None:
+    # Resolve through PATHEXT: an npm tool on Windows is a .cmd shim, which CreateProcess will not find by bare name.
+    exe = shutil.which(cmd[0])
+    if not exe:
+        return None
     try:
-        r = run(cmd)
+        r = run([exe, *cmd[1:]])
     except OSError:
         return None
     out = (r.stdout or r.stderr).strip().splitlines()
@@ -71,6 +75,7 @@ def cmd_check(_: argparse.Namespace) -> int:
         ("mempalace-mcp", ["mempalace-mcp", "--help"], "required on PATH for the MCP server (uv tool update-shell)"),
         ("ffmpeg", ["ffmpeg", "-version"], "optional: video tier 3 and frames (video skill)"),
         ("browser-harness", ["browser-harness", "--help"], "optional: the browser skill"),
+        ("agent-desktop", ["agent-desktop", "--version"], "optional: the desktop skill (npm install -g agent-desktop)"),
     ]
     missing_required = False
     for name, cmd, why in rows:

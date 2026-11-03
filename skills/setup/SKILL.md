@@ -38,7 +38,7 @@ settings. Tell the user what is missing, grouped:
   GitHub, the privacy-safe email is the `<id>+<login>@users.noreply.github.com` address shown in
   GitHub's email settings.
 - **Optional**: `gh` (to create the private repo), `ffmpeg` and a Groq key (video tier 3),
-  `browser-harness` (the browser skill). Mention them; install only what the user wants.
+  `browser-harness` (the browser skill), `agent-desktop` (the desktop skill). Mention them; install only what the user wants.
 
 Do not install anything yourself without a yes: installing software changes the machine.
 

@@ -97,6 +97,11 @@ form, filters, pages of results, a JS-rendered page, WebFetch returned an empty 
 The user wants to watch, or it is their own dev server: the app's built-in browser. It needs their
 logins from their main Chrome: Claude in Chrome.
 
+### A desktop app
+The app's own route first: a CLI flag, a config file, a scripting API, an MCP server. A native
+window with no such route (a dialog, a settings page, a form, a tray menu): `desktop`. No
+accessibility tree at all (a game, a canvas, a remote screen): the harness's screenshot computer use.
+
 ### Formulas, proofs, slides
 `latex`: a full `.tex`, a snippet, or Beamer slides.
 

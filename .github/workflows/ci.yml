@@ -33,6 +33,8 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
       - name: every gate fires where it must and stays quiet where it must not
         run: uv run --no-project --python 3.12 tests/test_hooks.py
+      - name: the desktop wrapper refuses overwrites and reports changes
+        run: uv run --no-project --python 3.12 tests/test_desktop.py
 
   skills:
     name: skills (SQS)

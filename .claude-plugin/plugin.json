@@ -3,7 +3,7 @@
   "name": "agent-memory",
   "displayName": "Agent Memory",
   "version": "0.0.1",
-  "description": "Persistent agent memory in a git repository, an Obsidian knowledge vault indexed by MemPalace, and the skills that fill them: notes, video and PDF extraction, browser automation, skill quality checks, diagrams, LaTeX, safe commits.",
+  "description": "Persistent agent memory in a git repository, an Obsidian knowledge vault indexed by MemPalace, and the skills that fill them: notes, video and PDF extraction, browser and desktop app automation, skill quality checks, diagrams, LaTeX, safe commits.",
   "author": {
     "name": "letsloose501",
     "url": "https://github.com/letsloose501"
