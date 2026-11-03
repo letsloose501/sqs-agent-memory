@@ -111,6 +111,18 @@ def main() -> int:
     expect("memory: files outside memory ignored", r.returncode == 0)
     r = hook("guard_memory_scope.py", w(mem / "x.md", "just text"), {k: v for k, v in env.items() if "MEMORY_DIR" not in k})
     expect("memory: unconfigured plugin stays quiet", r.returncode == 0)
+    # Built with chr(): a literal escape in this file would be decoded by the very tools under test.
+    esc, zwsp, tag = chr(0x1B), chr(0x200B), chr(0xE0041)
+    r = hook("guard_memory_scope.py", w(mem / "x.md", entry + "colour " + esc + "[31m red"), env)
+    expect("invisible: a decoded ESC blocked in memory", r.returncode == 2 and "U+001B" in r.stderr, r.stderr[:120])
+    r = hook("guard_memory_scope.py", w(vault / "Note.md", "word" + zwsp + "joined"), env)
+    expect("invisible: a zero-width space blocked in the vault", r.returncode == 2 and "U+200B" in r.stderr)
+    r = hook("guard_memory_scope.py", w(mem / "x.md", entry + "hidden" + tag), {**env, "AGENT_MEMORY_UNLOCK": "1"})
+    expect("invisible: a tag character blocked, unlock does not open it", r.returncode == 2)
+    r = hook("guard_memory_scope.py", w(vault / "Note.md", "family " + chr(0x1F468) + chr(0x200D) + chr(0x1F469)), env)
+    expect("invisible: ZWJ inside an emoji passes", r.returncode == 0, r.stderr[:120])
+    r = hook("guard_memory_scope.py", w(tmp / "elsewhere.md", "x" + esc), env)
+    expect("invisible: files outside memory and vault ignored", r.returncode == 0)
 
     # -- file_context
     (mem / "tool-pitfall.md").write_text(entry.replace("body", "Run `frobnicate.py` with --safe, it corrupts otherwise."),
@@ -292,6 +304,88 @@ def main() -> int:
     expect("session: state added after compaction", "State at compaction time" in r.stdout, r.stdout[-200:])
     r = hook("session_start.py", {"source": "startup"}, {k: v for k, v in env.items() if "MEMORY_DIR" not in k})
     expect("session: unconfigured plugin points at setup", r.returncode == 0 and "setup" in r.stdout)
+
+    # -- memory_usage (a synthetic transcript: what counts as a use and what does not)
+    um, proj = tmp / "usage", tmp / "projects"
+    (proj / "work").mkdir(parents=True)
+    um.mkdir()
+    for name in ("hot", "cold", "unindexed"):
+        (um / f"{name}.md").write_text(entry.replace("name: x", f"name: {name}"), encoding="utf-8")
+    (um / "MEMORY.md").write_text("- [Hot](hot.md) - a\n- [Cold](cold.md) - b\n", encoding="utf-8")
+    now = dt.datetime.now(dt.timezone.utc)
+    old = (now - dt.timedelta(days=90)).isoformat()
+
+    def call(sid: str, ts: str, name: str, inp: dict) -> str:
+        return json.dumps({"sessionId": sid, "timestamp": ts, "message": {"content": [
+            {"type": "tool_use", "name": name, "input": inp}]}})
+
+    def transcript(sid: str, rows: list[str]) -> None:
+        (proj / "work" / f"{sid}.jsonl").write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+    stamp = now.isoformat()
+    transcript("s1", [call("s1", stamp, "Read", {"file_path": str(um / "hot.md")}),
+                      call("s1", stamp, "Read", {"file_path": str(um / "hot.md")}),
+                      call("s1", stamp, "Write", {"file_path": str(um / "cold.md"), "content": "x"}),
+                      call("s1", old, "Read", {"file_path": str(um / "cold.md")})])
+    transcript("s2", [call("s2", stamp, "Bash", {"command": f'cd "{um}" && cat unindexed.md'}),
+                      call("s2", stamp, "Bash", {"command": "python memory_recall.py read unindexed"})])
+    transcript("s3", [call("s3", stamp, "Bash", {"command": "uv run memory_recall.py read unindexed"})])
+    r = hook("memory_usage.py", {}, {}, "--memory", str(um), "--projects", str(proj))
+    expect("usage: one count per session, however many reads", "  1  hot.md" in r.stdout, r.stdout[:400])
+    expect("usage: cat after cd and recall read both count", "  2  unindexed.md" in r.stdout, r.stdout[:400])
+    expect("usage: an entry opened often but missing from the index is named",
+           "- 2  unindexed.md" in r.stdout, r.stdout)
+    cold_part = r.stdout.split("opened in no session")[-1]
+    expect("usage: a write and an out-of-window read are not uses", "cold.md" in cold_part, r.stdout[-300:])
+
+    # -- memory_preservation (a lossy rewrite is reported, a faithful one is not)
+    genv = {**os.environ, **{k: v for k, v in env.items() if k.startswith("GIT_")}}
+
+    def commit(repo: Path, msg: str, when: str | None = None) -> None:
+        e = {**genv, **({"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when} if when else {})}
+        subprocess.run(["git", "-C", str(repo), "add", "-A"], env=e, capture_output=True)
+        subprocess.run(["git", "-C", str(repo), "commit", "-qm", msg], env=e, capture_output=True)
+
+    pm = tmp / "preserve"
+    pm.mkdir()
+    git(pm, "init", "-b", "main")
+    fact = entry.replace("body", "Deadline 14.09.2026, limit 20 KB, see [[other-entry]].")
+    (pm / "fact.md").write_text(fact, encoding="utf-8")
+    (pm / "kept.md").write_text(fact, encoding="utf-8")
+    commit(pm, "base", old)
+    (pm / "fact.md").write_text(entry.replace("body", "Deadline soon, small limit."), encoding="utf-8")
+    (pm / "kept.md").write_text(entry.replace("body", "Срок 14.09.2026, предел 20 KB, см. [[other-entry]]."),
+                                encoding="utf-8")
+    commit(pm, "rewrite")
+    r = hook("memory_preservation.py", {}, {}, "--memory", str(pm))
+    expect("preservation: a lossy rewrite reported with what it lost",
+           r.returncode == 1 and "fact.md" in r.stdout and "14.09.2026" in r.stdout, r.stdout[-300:])
+    expect("preservation: a translation keeping numbers and links passes", "kept.md" not in r.stdout, r.stdout)
+    r = hook("memory_preservation.py", {}, {}, "--memory", str(tmp / "no-repo"))
+    expect("preservation: no repository is exit 2, not 'nothing lost'", r.returncode == 2, r.stdout[:120])
+
+    # -- monthly_review (a retold pitfall counts as a repeat, a new one does not)
+    mm = tmp / "monthly"
+    (mm / "mistakes").mkdir(parents=True)
+    git(mm, "init", "-b", "main")
+    (mm / "mistakes" / "a.md").write_text(
+        "MISTAKE: reported the push as landed, remote rejected it\nWHY: read exit output, not the remote\n"
+        "FIX: compare local HEAD with remote branch\nPATTERN: push landed without checking remote\n", encoding="utf-8")
+    commit(mm, "old", old)
+    (mm / "mistakes" / "b.md").write_text(
+        "MISTAKE: said the push landed, remote branch never moved\nWHY: trusted output, not the remote\n"
+        "FIX: compare HEAD with remote branch after push\nPATTERN: push landed without remote check\n", encoding="utf-8")
+    (mm / "mistakes" / "c.md").write_text(
+        "MISTAKE: deleted bracketed filename silently missed\nWHY: wildcard parsing of square brackets\n"
+        "FIX: LiteralPath parameter\nPATTERN: bracket names wildcard\n", encoding="utf-8")
+    commit(mm, "new")
+    r = hook("monthly_review.py", {}, {}, "--memory", str(mm), "--dry")
+    expect("monthly: a retold pitfall is a repeat, a new one is not",
+           "of them repeats      : 1  (50%)" in r.stdout and "b.md  ~  a.md" in r.stdout, r.stdout[:400])
+    r = hook("monthly_review.py", {}, {}, "--memory", str(pm))
+    row = (pm / "scripts" / "monthly.tsv").read_text(encoding="utf-8").splitlines()[-1].split("\t")
+    expect("monthly: no mistakes is 'not measurable' and an empty share, not 0 %",
+           "not measurable" in r.stdout and row[4] == "", str(row))
 
     # -- memory_autocommit (with a local bare remote)
     remote = tmp / "remote.git"

@@ -96,6 +96,20 @@ not work, not that a fourth entry is needed.
 4. **Index integrity**: files without an index line, lines without a file. Keep the index under
    **150 lines and 20 KB**: Claude Code loads the first 200 lines or 25 KB and silently drops the
    rest; the lower ceiling leaves a week of growth.
+5. **Use, not only presence**:
+   `uv run --no-project "${CLAUDE_PLUGIN_ROOT}/scripts/memory_usage.py" --memory "${user_config.memory_dir}"`
+   counts, from the transcripts, the sessions that opened each entry in the last 30 days. Every
+   other measure looks at the writing side; this one says whether an entry is ever read. Two lists
+   matter: entries opened in two or more sessions but missing from `MEMORY.md` (propose an index
+   line), and index lines opened in no session (when the index nears its ceiling, cut or fold these
+   into a hub first). A feedback or user entry can do its whole job from its index line and still
+   show as cold: judge those by the line, not by the count.
+6. **Facts a rewrite lost**:
+   `uv run --no-project "${CLAUDE_PLUGIN_ROOT}/scripts/memory_preservation.py" --memory "${user_config.memory_dir}"`
+   lists numbers, dates and links that left a modified entry this week, and says whether each is
+   gone from all memory or only moved. Exit 1 is a report, not a block: open `git diff` for each,
+   put back what was dropped by accident, leave what was retired on purpose. Run it after any bulk
+   rewrite or translation too, not only weekly.
 
 ## What to do with findings
 
@@ -122,6 +136,16 @@ we decide about X", or a new entry turned out to duplicate an old one), add that
 entry it should have found. Word it the way it was asked, not with the entry's title words, and
 join the English wording and the user's own words with ` | `. A case whose entry no longer exists
 is reported as "not measurable": fix the case against the files.
+
+**Once a month** (the first review of a month), also run
+`uv run --no-project "${CLAUDE_PLUGIN_ROOT}/scripts/monthly_review.py" --memory "${user_config.memory_dir}"`.
+It answers the question the weekly numbers cannot: does the agent step on recorded pitfalls less
+often. From git history (the journal is emptied weekly, git keeps it) it counts the share of the
+month's mistakes that resemble one recorded earlier, and appends a row to
+`${user_config.memory_dir}/scripts/monthly.tsv`.
+A falling share means lessons get through; a flat one means entries are written but do not fire,
+so the next step is a rule or a hook, not another entry. A month with no mistakes is "not
+measurable", not 0 %.
 
 ## Report
 

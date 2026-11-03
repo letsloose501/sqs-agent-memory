@@ -19,6 +19,43 @@ Three things an agent lacks out of the box, in one plugin:
   processed, a push that did not land, a wiki link that points nowhere, a PowerShell delete that
   would silently do nothing.
 
+## What it gives you
+
+**For the agent**
+
+- **It starts every session knowing the ground rules and where to look.** The rules and the memory
+  search command arrive with the first message, so the agent does not rediscover a pitfall it
+  already wrote down, and it does not have to guess whether an entry exists.
+- **The lesson arrives at the moment it applies.** When the agent opens a file, the entries and
+  journal lessons that name that file are put next to it. A note about a fragile script is read
+  when the script is read, not hoped to be remembered.
+- **It is stopped before the mistakes that look like success.** A `git push` that was rejected, a
+  delete that matched nothing, a heredoc that wrote garbage, a wiki link that points nowhere, a
+  decoded escape that put a control character into a note: each is caught by a hook that exits 2
+  and says why, instead of being reported as done.
+- **It survives compaction.** After the context is summarised, the start hook puts back what the
+  summary drops: unchecked gate marks, notes touched in the last hours, uncommitted memory edits.
+- **It reads only as deep as needed.** Search answers with one line per hit; an entry is opened at
+  the abstract, the outline or in full. The index stays small, so it fits the part of `MEMORY.md`
+  Claude Code actually loads.
+
+**For you**
+
+- **A memory you can audit.** Plain Markdown in your own private git repository. Every change is
+  a commit: read it, diff it, revert it. Nothing lives in a database you cannot open.
+- **You stop repeating yourself.** A correction you give once becomes an entry, then a rule if it
+  repeats, then a hook if the rule did not hold. The monthly review tells you whether that is
+  working: the share of new mistakes that resemble an old one.
+- **Numbers instead of a feeling.** Search quality on your own questions, which entries sessions
+  actually open, which facts a rewrite dropped, how full the index is, all appended to history
+  files so you see the direction, not a snapshot.
+- **What is private stays private.** Text in `<private>` tags, secrets and hidden characters are
+  refused at write time. Memory goes only to a private remote you create; the vault index runs on
+  your machine.
+- **Everything you read or watch becomes a linked note.** Videos, PDFs (scans included), articles
+  and raw notes turn into Obsidian notes with checked sources, found later by the question you
+  would ask.
+
 ## Why the memory is different
 
 - **You can read every byte of it.** One Markdown file per fact, one line per fact in the index.
@@ -93,6 +130,16 @@ not match, keeps failed approaches as dead ends, and proposes, never performs, d
 mechanical half is scripts, so the model spends its turn on judgement: `journal_reflect.py`
 pre-sorts the journal, `transcript_digest.py` boils the week's sessions down to your own messages
 and the tool failures that repeated across sessions, and `memory_eval.py` measures the result.
+
+Two checks look at memory from the reading side, which the other numbers cannot see.
+`memory_usage.py` counts, from the transcripts, the sessions that opened each entry, so the index
+is trimmed by use when it nears its ceiling: on the author's memory the first run (30 days, 486
+transcripts) found 69 index lines whose entries no session had opened. `memory_preservation.py`
+lists numbers, dates and links that a rewrite removed from an entry, because merging, translating
+and compacting are exactly where facts get lost: its first 30-day run flagged 9 entries. Once a
+month, `monthly_review.py` measures the outcome that matters: how many new mistakes resemble one
+already recorded. The ideas come from research on agent memory (ACE, REALM, TrustMem), cited in
+each script; the checks themselves are deterministic and use the standard library only.
 
 Rule of thumb for where something goes: a fact about you or a decision with its reason goes to
 memory; knowledge about the world goes to the vault; a procedure that is always done the same way
@@ -174,7 +221,7 @@ The code chain is adapted from [Matt Pocock's skills](https://github.com/mattpoc
 | Hook | When | What |
 |---|---|---|
 | `session_start.py` | session start | prints the working rules and the memory search command; after a compaction, what was in progress |
-| `guard_memory_scope.py` | before Write/Edit | keeps `<private>` text out of memory and the vault, blocks secrets, requires `source` on entries, protects README/SCOPES |
+| `guard_memory_scope.py` | before Write/Edit | keeps `<private>` text and invisible characters (control, zero-width, bidi, tag: decoded escapes and hidden-instruction carriers) out of memory and the vault, blocks secrets, requires `source` on entries, protects README/SCOPES |
 | `file_context.py` | before Read | when a file is read, surfaces the memory entries and journal lessons that name it (once per session) |
 | `guard_heredoc.py` | before Bash | blocks long heredocs, which break silently |
 | `guard_literalpath.py` | before PowerShell | rewrites a delete of a `[bracketed]` name to `-LiteralPath` |
@@ -189,13 +236,26 @@ The code chain is adapted from [Matt Pocock's skills](https://github.com/mattpoc
 | `memory_eval.py` | index size, unreachable entries, missing descriptions, stale facts, sources, search score; history over time |
 | `journal_reflect.py` | deterministic pre-sort of the mistakes journal for the weekly review |
 | `transcript_digest.py` | the week's sessions across all projects, boiled down for the weekly review: the user's own messages, rejected tool calls, failed tool calls grouped by distinct sessions (`REPEAT` from two); picks the week by the last entry in each file, not mtime |
+| `memory_usage.py` | which entries sessions actually open, from the transcripts: hot entries missing from the index, index lines nobody opens |
+| `memory_preservation.py` | numbers, dates and links a rewrite removed from an entry, and whether they survive elsewhere |
+| `monthly_review.py` | share of the month's mistakes that repeat an earlier one, from git history; the measure of whether memory changes behaviour |
 | `vault_index.py` | writes MemPalace summary cards for vault notes |
 
 ## Install
 
-Step by step, including Obsidian, a GitHub account and MemPalace: **[docs/install.md](docs/install.md)**.
+Step by step, with screens and checks: **[docs/install.md](docs/install.md)**. Below is what each
+piece is, why it is needed, and the command.
 
-Short version, with git, uv, MemPalace and a GitHub login already in place:
+| What | Why the plugin needs it | How (Windows / macOS) |
+|---|---|---|
+| Claude Code | the plugin's hooks and skills run inside it | terminal, desktop app or IDE extension |
+| git | memory is a git repository; every change is a commit you can revert | `winget install --id Git.Git -e` / `xcode-select --install` |
+| [uv](https://docs.astral.sh/uv/) | runs every hook and script with the right Python and its dependencies, no virtualenv to manage | `winget install --id astral-sh.uv -e` / `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| a GitHub account and `gh` | a **private** remote for the memory, so it survives a dead disk and follows you to another machine | `winget install --id GitHub.cli -e` / `brew install gh`, then `gh auth login` |
+| [Obsidian](https://obsidian.md) | to read and edit the vault the notes skills write into | `winget install --id Obsidian.Obsidian -e` / `brew install --cask obsidian` |
+| [MemPalace](https://github.com/MemPalace/mempalace) | searches the vault by meaning, locally; the search model (about 300 MB) downloads on first use | `uv tool install mempalace`, then `uv tool update-shell` and reopen the terminal |
+
+Then, in Claude Code:
 
 ```text
 /plugin marketplace add letsloose501/sqs-agent-memory
@@ -203,9 +263,24 @@ Short version, with git, uv, MemPalace and a GitHub login already in place:
 /agent-memory:setup
 ```
 
-Requirements: Claude Code, git, [uv](https://docs.astral.sh/uv/), [MemPalace](https://github.com/MemPalace/mempalace)
-(`uv tool install mempalace`), [Obsidian](https://obsidian.md). Windows, macOS and Linux; the
-PowerShell guard only acts on Windows.
+The install asks for four options: the memory folder (for example `~/agent-memory`), the vault
+folder (an existing vault or an empty folder), the language of your notes, and whether to push
+memory after each turn (leave it on). `setup` checks the tools, creates the memory repository and
+its private remote, a starter vault, configures MemPalace, and points Claude Code's auto memory at
+the repository; it asks before every change outside the plugin. Restart Claude Code once so the
+memory folder and the MemPalace server take effect.
+
+**How to tell it works:** a new session starts with your rules printed at the top; "take notes on
+this: ..." with a paragraph creates a note and an index card; `setup.py check` shows every tool as
+`ok`.
+
+**To run the weekly review on its own**, ask Claude to schedule it, for example "run
+/agent-memory:memory-review every Sunday at 20:00".
+
+Optional: ffmpeg and a free Groq key for videos without captions, `browser-harness` for the
+browser skill, a TeX distribution for LaTeX, Anthropic's `document-skills` for Office files. Each is
+in [docs/install.md](docs/install.md#optional-extras). Windows, macOS and Linux; the PowerShell guard
+only acts on Windows.
 
 ## Limits
 

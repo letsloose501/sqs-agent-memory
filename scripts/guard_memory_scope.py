@@ -4,11 +4,15 @@ Why. Every future session reads the memory. A conclusion one session drew from a
 occasion and wrote into the rules steers everyone's work tomorrow, and nobody is left to
 correct it, because each next session sees it as a given. A gate is cheaper than cleaning up.
 
-Four checks, in this order:
+Five checks, in this order:
   1. Private text: anything inside <private>...</private> never reaches memory or the vault.
      No unlock. The user marks what is for this conversation only (the idea comes from
      claude-mem's privacy tags). What the hook cannot see: the same content retold without the
      tags; that part is a rule in claude/rules.md, not a gate.
+  1b. Invisible characters (control, zero-width, bidi, tag) in memory or the vault: blocked,
+     no unlock. They are either a decoded escape that corrupts the text or a carrier for hidden
+     instructions. Phrase lists ("ignore previous instructions") are not screened: memory quotes
+     such phrases on purpose when it records an attack.
   2. Secrets anywhere in memory: blocked always, no unlock. A key that reached a git commit
      is compromised and gets revoked, not deleted.
   3. Entry format: a new root entry written whole must carry name, description, type and
@@ -48,6 +52,28 @@ SECRET_RE = re.compile(
     r"|-----BEGIN [A-Z ]*PRIVATE KEY-----"
     r"|\b\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}\b)"  # card number
 )
+
+# Invisible text: control characters and zero-width / bidi / tag characters. Two reasons, one gate.
+# Our own: Write and Edit decode backslash escapes in the argument, so `\u` + 1b or `\a` in a
+# formula lands as a real ESC or BEL (a LaTeX alpha turned into BEL + "lpha", a zero-width space
+# pasted from a PDF). And poisoning: hidden instructions ride in exactly these characters, and
+# write-time screening is the layer that stops direct injection (MemPoison, arXiv 2607.14651;
+# SMSR, arXiv 2606.12703). Built from code points, not escapes, so this file cannot be bitten by
+# the same trap. ZWJ (U+200D) is left out: emoji sequences use it.
+_INVISIBLE = [(0x00, 0x08), (0x0B, 0x0C), (0x0E, 0x1F), (0x7F, 0x7F), (0x200B, 0x200C),
+              (0x200E, 0x200F), (0x202A, 0x202E), (0x2060, 0x2064), (0x2066, 0x2069),
+              (0xFEFF, 0xFEFF), (0xE0000, 0xE007F)]
+INVISIBLE_RE = re.compile("[" + "".join(f"{re.escape(chr(a))}-{re.escape(chr(b))}"
+                                        for a, b in _INVISIBLE) + "]")
+
+INVISIBLE_HINT = """Blocked: an invisible character on its way into {where}.
+
+  file: {name}
+  character: U+{code:04X} at position {pos}, after: {before!r}
+
+Usually a decoded escape: a backslash sequence in the Write/Edit argument became a real control
+character (\\u001b, \\a in \\alpha). Write the text so the backslash survives (build it with
+chr(92) in a script), or drop the character if it came from a pasted source."""
 
 PRIVATE_HINT = """Blocked: <private> text on its way into {where}.
 
@@ -134,6 +160,12 @@ def main() -> int:
 
     if PRIVATE_RE.search(text):
         print(PRIVATE_HINT.format(where="memory" if in_mem else "the vault", name=path.name), file=sys.stderr)
+        return 2
+    m = INVISIBLE_RE.search(text)
+    if m:
+        print(INVISIBLE_HINT.format(where="memory" if in_mem else "the vault", name=path.name,
+                                    code=ord(m.group(0)), pos=m.start(),
+                                    before=text[max(0, m.start() - 30):m.start()]), file=sys.stderr)
         return 2
     if not in_mem:
         return 0

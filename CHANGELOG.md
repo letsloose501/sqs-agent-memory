@@ -5,6 +5,25 @@ publishes a release with the section below as its notes.
 
 ## Unreleased
 
+- Memory use: `scripts/memory_usage.py` counts, from session transcripts, the sessions that opened
+  each entry (Read, `memory_recall.py read`, cat/sed/head/Get-Content, also through Claude Code's
+  per-project memory folder). It lists entries opened often but missing from the index and index
+  lines opened in no session; sweeps that open everything (the review itself) are counted apart.
+  Idea from ACE and REALM. `memory-review` phase 2 item 5.
+- Lost facts: `scripts/memory_preservation.py` compares each entry modified in the window with its
+  earlier version and lists numbers, dates and links that disappeared, gone from all memory or only
+  moved. A translation keeps them, so a faithful rewrite passes. Exit 1 is a report, exit 2 a git
+  failure. Idea from TrustMem. `memory-review` phase 2 item 6.
+- Monthly outcome: `scripts/monthly_review.py` measures the share of the month's mistakes that
+  resemble one recorded earlier, from git history, and appends it to `scripts/monthly.tsv`. A month
+  with no mistakes is written as an empty share, not 0 %.
+- `guard_memory_scope.py` blocks invisible characters (control, zero-width, bidi, tag; ZWJ allowed
+  for emoji) in memory and vault writes, with no unlock: they are either an escape the Write/Edit
+  argument decoded into a real control character, or a carrier for hidden instructions.
+- Tests: 14 new cases; 10 targeted mutations of the new code, each turned its own test red.
+- README: what the plugin gives the agent and the user, and an install table saying what each
+  prerequisite is for.
+
 - Transcript digest: `scripts/transcript_digest.py` does the mechanical half of phase 1 of
   `memory-review`. It picks the week by the last entry inside each transcript (not mtime), reads all
   projects but skips generated `*evals*` ones, keeps only the user's own messages, lists rejected
