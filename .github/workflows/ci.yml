@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: letsloose501/sqs-skills@2f474372cd77122f925f7c30e21217f038a13a63  # v2.2.0
+      - uses: letsloose501/sqs-skills@c8b3652c5147c9444b5529b8dfa6987ab7841ae1  # v2.3.0
         with:
           path: skills
           command: check

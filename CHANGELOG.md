@@ -18,8 +18,8 @@ publishes a release with the section below as its notes.
   shown to the user as a message, and repeated at every session start until a run succeeds. A push
   that failed earlier is retried on the next turn, even when that turn changed nothing; a fresh
   repository without an upstream is pushed with `-u`.
-- Bundled SQS updated to commit c8b3652 of sqs-skills (after v2.2.0): smell rules QL016-QL019,
-  `eval --runtime process`, `improve --transcripts`. CI still runs the v2.2.0 action, the latest tag.
+- Bundled SQS updated to v2.3.0 (commit c8b3652 of sqs-skills): smell rules QL016-QL019,
+  `eval --runtime process`, `improve --transcripts`. CI runs the v2.3.0 action, pinned by commit.
 - Matt Pocock's skills: upstream changes since 22.08.2026 ported over the plugin's adaptations
   (sub-agents with a fresh context, GLOSSARY.md instead of CONTEXT.md, `implement` fetches a ticket
   reference and calls skills through the Skill tool, `tdd` notes what each seam catches and misses,
