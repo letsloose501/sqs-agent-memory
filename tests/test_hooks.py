@@ -18,6 +18,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -231,6 +232,67 @@ def main() -> int:
     expect("vault: no loop when the stop was already blocked", r.returncode == 0)
     r = hook("verify_vault.py", {}, env, "--stop")
     expect("vault: nothing touched, nothing checked", r.returncode == 0 and not r.stderr.strip())
+
+    # A shell edit whose command names no path (a script writing notes) is caught by the
+    # mtime sweep; a shell call that edits nothing, an old note and a non-shell tool are not.
+    pending = data / "vault-pending.txt"
+    hour_ago = time.time() - 3600
+    os.utime(vault / "Old.md", (hour_ago, hour_ago))
+    # The sweep looks back to the previous hook call minus 1 s of mtime slack: wait, then let a
+    # call that marks nothing move the stamp past the notes written above.
+    time.sleep(1.2)
+    hook("verify_vault.py", {"tool_name": "Read", "tool_input": {"file_path": str(tmp / "a.txt")}}, env, "--mark")
+    hook("verify_vault.py", {"tool_name": "Bash", "tool_input": {"command": "ls"}}, env, "--mark")
+    expect("vault sweep: a shell call that edits nothing marks nothing", not pending.exists(),
+           pending.read_text(encoding="utf-8") if pending.exists() else "")
+    time.sleep(1.2)
+    scripted = vault / "Scripted.md"
+    scripted.write_text("[[Never written]]\n", encoding="utf-8")
+    hook("verify_vault.py", {"tool_name": "Bash", "tool_input": {"command": "python -I tool.py"}}, env, "--mark")
+    marked = pending.read_text(encoding="utf-8") if pending.exists() else ""
+    expect("vault sweep: a note a script wrote is marked", "Scripted.md" in marked, marked)
+    expect("vault sweep: an old note is not swept in", "Old.md" not in marked, marked)
+    r = hook("verify_vault.py", {}, env, "--stop")
+    expect("vault sweep: the swept note's new broken link blocks the stop",
+           r.returncode == 2 and "Never written" in r.stderr, r.stderr[:160])
+    scripted.write_text("[[Target]]\n", encoding="utf-8")
+    hook("verify_vault.py", {"tool_name": "Read", "tool_input": {"file_path": str(tmp / "a.txt")}}, env, "--mark")
+    expect("vault sweep: a non-shell tool does not sweep", not pending.exists(),
+           pending.read_text(encoding="utf-8") if pending.exists() else "")
+
+    # -- nudge_browser: a failed or empty fetch, or a failed browser call, points at the browser skill
+    quiet = {**env, "NUDGE_BROWSER_NOLOG": "1"}
+    article = "Summary: " + "HTTP 403 Forbidden means the server refuses the request. " * 60
+    nudge_cases = [
+        ("a normal page stays silent", {"hook_event_name": "PostToolUse", "tool_name": "WebFetch",
+         "tool_input": {"url": "https://x.org"}, "tool_response": "Title: Code Mode. Date: Sep 26 2025."}, False),
+        ("an empty JavaScript shell nudges", {"hook_event_name": "PostToolUse", "tool_name": "WebFetch",
+         "tool_input": {"url": "https://papers.example/doc/1"},
+         "tool_response": "The web page content you provided is empty, so I can't identify the title."}, True),
+        ("a Cloudflare stub nudges", {"hook_event_name": "PostToolUse", "tool_name": "WebFetch",
+         "tool_input": {"url": "https://s.example"}, "tool_response": {"result": "Just a moment... Checking your browser"}}, True),
+        ("a long article about 403 stays silent", {"hook_event_name": "PostToolUse", "tool_name": "WebFetch",
+         "tool_input": {"url": "https://docs.example"}, "tool_response": article}, False),
+        ("a failed fetch with 403 nudges", {"hook_event_name": "PostToolUseFailure", "tool_name": "WebFetch",
+         "tool_input": {"url": "https://news.example"}, "error": "Request failed with status code 403"}, True),
+        ("a localhost failure stays silent", {"hook_event_name": "PostToolUseFailure", "tool_name": "WebFetch",
+         "tool_input": {"url": "http://localhost:3000"}, "error": "Fails on localhost and other hostnames without a dot"}, False),
+        ("a disconnected browser extension nudges", {"hook_event_name": "PostToolUseFailure",
+         "tool_name": "mcp__claude-in-chrome__navigate", "tool_input": {}, "error": "Browser extension is not connected"}, True),
+        ("a browser call that worked stays silent", {"hook_event_name": "PostToolUse",
+         "tool_name": "mcp__Claude_Browser__navigate", "tool_input": {}, "tool_response": "ok"}, False),
+        ("another tool stays silent", {"hook_event_name": "PostToolUse", "tool_name": "Read",
+         "tool_input": {}, "tool_response": "403 forbidden"}, False),
+    ]
+    for name, payload, want in nudge_cases:
+        r = hook("nudge_browser.py", payload, quiet)
+        got = bool(r.stdout.strip())
+        ok = r.returncode == 0 and got == want
+        if ok and got:
+            out = json.loads(r.stdout).get("hookSpecificOutput", {})
+            ok = out.get("hookEventName") == payload["hook_event_name"] and "browser" in out.get("additionalContext", "")
+        expect(f"browser nudge: {name}", ok, (r.stdout + r.stderr)[:160])
+    expect("browser nudge: the test runs leave no log", not (data / "browser-nudge.tsv").exists())
 
     # -- memory_recall and the recall line of memory_eval (a separate memory, no git)
     rm = tmp / "recall"

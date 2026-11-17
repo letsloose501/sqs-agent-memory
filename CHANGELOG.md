@@ -5,6 +5,33 @@ publishes a release with the section below as its notes.
 
 ## Unreleased
 
+- `verify_vault.py` sees shell edits that name no path. It marked notes only from Write/Edit and
+  from `.md` paths in a command's text, so a script that rewrote ten notes from paths inside a
+  `.py` file passed the gate unseen. After every Bash/PowerShell call it now also marks notes
+  modified since the previous hook call (at most 600 s back, stamp `vault-last-hook.txt` in the
+  plugin's data folder). Five new cases in `tests/test_hooks.py`: a script's edit is marked and
+  blocks the stop on its new broken link; a shell call that edits nothing, an hour-old note and a
+  non-shell tool are not. With the sweep switched off the two catching cases go red.
+- New hook `nudge_browser.py` (PostToolUse and PostToolUseFailure on WebFetch, Claude in Chrome
+  and the built-in browser): an empty or JavaScript-only page, a Cloudflare stub, a CAPTCHA, a
+  403/5xx, a certificate error, a verbatim refusal, or a failed browser call get "use the
+  `browser` skill" next to the result; nothing is blocked. Signals other than plain emptiness
+  count only in a short answer, so an article about 403 errors stays silent. Ten cases in the
+  tests, five of them must stay silent. Firings are logged to `browser-nudge.tsv` in the data
+  folder to find nudges that were not needed.
+- `notes` step 7: a fact-check by a separate checker. A note written from sources goes to a
+  subagent that gets the note and the sources, never the author's reasoning, and lists every
+  claim they do not support (numbers, names, comparisons with their qualifiers, mechanisms,
+  claims about the user's own setup). `references/fact-check.md` is the checker's brief,
+  `references/fact-check-author.md` the launch, the prompt and the calibration. Calibrated on
+  three cases: it caught an invented paragraph about the user's setup, a paper finding with a
+  dropped loose/strict qualifier, and one unsupported word in a note believed clean (26 of 27
+  claims passed). The first run leaked the answer because the cases sat in the checker's own
+  brief; they now live only in the author's file. Steps 8-10 renumbered, the router points at
+  step 9.
+- Bundled SQS updated to commit de24255 of sqs-skills: `references/clean-context-run.md` (the
+  mirror and the replay in a subagent), linked from `writing-rubric.md` §6 and §8.
+
 - New skill `desktop`: native apps through the accessibility tree with
   [agent-desktop](https://github.com/vercel-labs/agent-desktop) 1.1.0 (Apache-2.0, called as a CLI,
   no code copied). `scripts/ad.py` prints a window as one line per control (Calculator: 10 KB of

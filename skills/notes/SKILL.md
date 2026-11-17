@@ -106,7 +106,11 @@ as the backbone and as sources. Write from scratch only when asked.
 6. **Cards only on evidence that the topic is being forgotten.** A written note does not by itself
    produce cards. There are exactly two reasons: the user asked, or a review or quiz showed the
    topic slipping. Then create or extend `Cards/<Topic>/<...>.md` by `references/cards.md`.
-7. **Check the links, always, before reporting.** Run on every created and changed file:
+7. **Fact-check by a separate checker.** A note created or extended from sources (an article, a
+   transcript, a PDF, a paper) goes to a subagent that gets the note and the sources, never your
+   reasoning, and lists every claim the sources do not support: **`references/fact-check-author.md`**
+   (for a video, before the transcript is deleted: it is one of the sources).
+8. **Check the links, always, before reporting.** Run on every created and changed file:
    ```bash
    uv run --no-project "${CLAUDE_PLUGIN_ROOT}/skills/notes/scripts/check_links.py" --vault "${user_config.vault_dir}" "path/to/Note.md" "path/to/Other.md"
    ```
@@ -115,7 +119,7 @@ as the backbone and as sources. Write from scratch only when asked.
    copy the heading from the target file. Exit 0 is clean, 1 means broken links, each with what to
    do. Do not report done until it is 0. (A Stop hook re-checks touched notes at the end of the
    turn and blocks on new broken links.)
-8. **Update the map.** Put the new note (and new terms) into MemPalace so the next sessions know the
+9. **Update the map.** Put the new note (and new terms) into MemPalace so the next sessions know the
    structure. Two ways, the second more reliable:
    - the tools `mempalace_check_duplicate`, then `mempalace_add_drawer(wing="vault", ...)`
      (`references/mempalace.md`);
@@ -130,16 +134,16 @@ as the backbone and as sources. Write from scratch only when asked.
    **The summary is a symptom, not a table of contents.** The card is found by it. A card "Index
    types" summarised as "B-tree and selectivity" is not found by "a database query takes forever".
    Write the words the user will search with in six months, having forgotten the title.
-9. **Report briefly.** What was created or updated (note, N cards, which terms, which links), with
+10. **Report briefly.** What was created or updated (note, N cards, which terms, which links), with
    paths the user can open.
 
 ## Scripts
 
 | Script | When |
 |---|---|
-| **`scripts/check_links.py`** | step 7, **always** before reporting; with no files it checks the whole vault |
+| **`scripts/check_links.py`** | step 8, **always** before reporting; with no files it checks the whole vault |
 | `scripts/mempalace_doctor.py` | the palace fails with `Connection closed` (`references/mempalace.md`) |
-| `${CLAUDE_PLUGIN_ROOT}/scripts/vault_index.py` | step 8 without MCP; `gaps` shows notes missing from the index |
+| `${CLAUDE_PLUGIN_ROOT}/scripts/vault_index.py` | step 9 without MCP; `gaps` shows notes missing from the index |
 
 ## References
 
@@ -149,6 +153,7 @@ Open the one the situation needs; do not load them all.
 |---|---|
 | **`references/style-guide.md`** | writing a note: **always** in Note mode |
 | **`references/vault-map.md`** | deciding where a note goes; a new topic |
+| **`references/fact-check-author.md`** | step 7: launching the separate checker (its own brief: `fact-check.md`) |
 | **`references/mempalace.md`** | before writing (the map) and after; the palace broke |
 | **`references/cards.md`** | making cards: format, selection, how many |
 | **`references/dictionary.md`** | adding a term to the dictionary |

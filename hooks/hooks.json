@@ -133,6 +133,40 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": "WebFetch|mcp__claude-in-chrome__.*|mcp__Claude_Browser__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PLUGIN_ROOT}/scripts/nudge_browser.py"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "WebFetch|mcp__claude-in-chrome__.*|mcp__Claude_Browser__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv",
+            "args": [
+              "run",
+              "--no-project",
+              "--quiet",
+              "${CLAUDE_PLUGIN_ROOT}/scripts/nudge_browser.py"
+            ],
+            "timeout": 15
+          }
+        ]
       }
     ],
     "Stop": [

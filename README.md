@@ -256,7 +256,8 @@ The code chain is adapted from [Matt Pocock's skills](https://github.com/mattpoc
 | `guard_heredoc.py` | before Bash | blocks long heredocs, which break silently |
 | `guard_literalpath.py` | before PowerShell | rewrites a delete of a `[bracketed]` name to `-LiteralPath` |
 | `check_push_landed.py` | after Bash/PowerShell | compares HEAD with the remote after `git push` |
-| `verify_vault.py` | after edits / at stop | blocks the end of a turn on new broken wiki links |
+| `verify_vault.py` | after edits / at stop | blocks the end of a turn on new broken wiki links; after a shell call it also sweeps notes a script changed without naming them in the command |
+| `nudge_browser.py` | after WebFetch and browser calls | when a fetch came back empty, blocked or failed, or a browser call failed, puts "use the `browser` skill" next to the result; blocks nothing |
 | `check_skills.py` (SQS) | after edits / at stop | checks the structure of skills you edit in `~/.claude/skills` |
 | `memory_autocommit.py` | at stop | commits memory changes and pushes to the private remote, retries a push that failed earlier; a failure is shown to you and repeated at the next session start until it is fixed |
 

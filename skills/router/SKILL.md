@@ -53,7 +53,7 @@ check`. A note about how skills work is `notes`: the topic being skills does not
 ### Knowledge into the vault
 `video` / `pdf` -> `notes`, or `notes` directly when the text is in hand. A diagram inside a note:
 `notes` draws analogue pictures itself and calls `graphics` for templates and data charts. New notes
-reach the MemPalace index through `notes` step 8; a vault that grew without it: `vault-index`.
+reach the MemPalace index through `notes` step 9; a vault that grew without it: `vault-index`.
 
 ### Code, a project, a feature
 Three entrances, one channel:

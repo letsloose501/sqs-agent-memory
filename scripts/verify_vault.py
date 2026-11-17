@@ -12,9 +12,17 @@ files that get appended to every time. A "zero broken" gate would fail all such 
 switched off within a day. So the gate catches REGRESSION: a broken link the baseline did
 not know. The baseline is taken automatically the first time the gate runs.
 
+Two ways a note gets marked. A Write/Edit names the file, and a shell command may carry the
+path in its text. An edit through the shell with no path in the text (`python script.py`
+writing notes, a sed on a variable, an mv by wildcard) is caught by a sweep: after every Bash
+or PowerShell call the hook marks the notes modified since the previous hook call of any
+tool, looking back at most SWEEP_WINDOW seconds. Without the sweep, a script that rewrote ten
+notes from paths inside a .py file passed the gate unseen.
+
 What this check physically cannot see:
-  * an edit made through the shell when no vault path appears in the command text (a sed
-    on a variable, an mv by wildcard): the marker is set from the command text;
+  * an edit by another session or by Obsidian in the same interval: it joins this turn's check
+    (the gate still blocks only on a NEW broken link, so little harm);
+  * a shell edit running in the background that finishes after the next tool call;
   * an old broken link: it is in the baseline, and the gate stays quiet about it. "The gate
     passed" means "no new broken links were added", not "the file is intact".
 
@@ -35,6 +43,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from _common import plugin_data, read_payload, utf8_stdio, vault_dir
@@ -43,6 +52,8 @@ ROOT = Path(__file__).resolve().parent.parent
 CHECKER = ROOT / "skills" / "notes" / "scripts" / "check_links.py"
 SKIP_PARTS = {".obsidian", ".trash", ".git", "Excalidraw"}
 CMD_PATH_RE = re.compile(r"[^\s\"']+\.md")
+SHELL_TOOLS = ("Bash", "PowerShell")
+SWEEP_WINDOW = 600  # seconds: never look further back, or edits between turns get swept in
 
 HINT = """The turn is not finished: the notes you touched now have broken links.
 
@@ -61,6 +72,42 @@ Check by hand: python "{checker}" --vault "{vault}" <file>"""
 def state_files() -> tuple[Path, Path]:
     d = plugin_data()
     return d / "vault-pending.txt", d / "vault-known-broken.json"
+
+
+def stamp_file() -> Path:
+    return plugin_data() / "vault-last-hook.txt"  # time of the previous --mark call
+
+
+def read_stamp(now: float) -> float:
+    try:
+        prev = float(stamp_file().read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        prev = now - SWEEP_WINDOW
+    return max(prev, now - SWEEP_WINDOW)
+
+
+def write_stamp(now: float) -> None:
+    try:
+        stamp_file().write_text(f"{now:.3f}", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def swept_paths(vault: Path, since: float) -> set[str]:
+    """Notes modified after `since`: a shell edit whose command text named no path."""
+    found: set[str] = set()
+    for root, dirs, files in os.walk(vault):
+        dirs[:] = [d for d in dirs if d not in SKIP_PARTS]
+        for name in files:
+            if not name.lower().endswith(".md"):
+                continue
+            p = Path(root) / name
+            try:
+                if p.stat().st_mtime >= since - 1 and is_note(p, vault):
+                    found.add(str(p.resolve()))
+            except OSError:
+                pass
+    return found
 
 
 def is_note(path: Path, vault: Path) -> bool:
@@ -202,7 +249,11 @@ def main() -> int:
         return mode_baseline(vault)
     payload = read_payload()
     if "--mark" in sys.argv:
+        now = time.time()
         found = touched_paths(payload, vault)
+        if payload.get("tool_name") in SHELL_TOOLS:
+            found |= swept_paths(vault, read_stamp(now))
+        write_stamp(now)
         if found:
             marker = state_files()[0]
             try:
